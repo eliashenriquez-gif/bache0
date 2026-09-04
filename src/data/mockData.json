@@ -9,9 +9,22 @@
       "fechaReporte": "2026-08-05T09:14:00-04:00",
       "severidad": "Alta",
       "estado": "Pendiente",
-      "imagenUrl": "https://picsum.photos/seed/pothole-alameda-1250/800/600",
+      "imagenUrl": "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=800&q=80",
       "reportadoPor": "Cuadrilla Vial Centro 3",
-      "descripcion": "Bache profundo en carril central, expone base de ripio. Riesgo para motociclistas."
+      "descripcion": "Bache profundo en carril central, expone base de ripio. Riesgo para motociclistas.",
+      "formulario": {
+        "flujoVehicular": "Muy Alto (Eje Troncal)",
+        "cercaniaColegioHospital": "Cercano a centro de salud y transporte público",
+        "tipoVia": "Avenida Principal",
+        "observacionCiudadana": "Vehículos caen violentamente en las noches."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "75 cm",
+        "profundidadEstimada": "14 cm",
+        "puntajePrioridad": 94,
+        "recomendacion": "Intervención prioritaria de emergencia."
+      }
     },
     {
       "id": "PH-2026-0851",
@@ -22,9 +35,22 @@
       "fechaReporte": "2026-08-08T11:32:00-04:00",
       "severidad": "Media",
       "estado": "En revisión",
-      "imagenUrl": "https://picsum.photos/seed/pothole-providencia-2360/800/600",
+      "imagenUrl": "https://images.unsplash.com/photo-1584467735811-628a8d3c14f9?auto=format&fit=crop&w=800&q=80",
       "reportadoPor": "Inspector Municipal - R. Fuentes",
-      "descripcion": "Grieta longitudinal de 3 metros con inicio de hundimiento superficial."
+      "descripcion": "Grieta longitudinal de 3 metros con inicio de hundimiento superficial.",
+      "formulario": {
+        "flujoVehicular": "Alto",
+        "cercaniaColegioHospital": "Sí, cercano a estación de Metro",
+        "tipoVia": "Avenida Comercial",
+        "observacionCiudadana": "Fisura en expansión tras flujo de buses."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "40 cm",
+        "profundidadEstimada": "6 cm",
+        "puntajePrioridad": 65,
+        "recomendacion": "Sellado de grieta programado."
+      }
     },
     {
       "id": "PH-2026-0863",
@@ -35,9 +61,22 @@
       "fechaReporte": "2026-08-10T15:05:00-04:00",
       "severidad": "Baja",
       "estado": "Reparado",
-      "imagenUrl": "https://picsum.photos/seed/pothole-apoquindo-4501/800/600",
+      "imagenUrl": "https://images.unsplash.com/photo-1584467735811-628a8d3c14f9?auto=format&fit=crop&w=800&q=80",
       "reportadoPor": "Cuadrilla Vial Oriente 1",
-      "descripcion": "Fisura superficial menor, ya intervenida con mezcla asfáltica en frío."
+      "descripcion": "Fisura superficial menor, ya intervenida con mezcla asfáltica en frío.",
+      "formulario": {
+        "flujoVehicular": "Medio",
+        "cercaniaColegioHospital": "No",
+        "tipoVia": "Avenida",
+        "observacionCiudadana": "Reparado con éxito."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "20 cm",
+        "profundidadEstimada": "3 cm",
+        "puntajePrioridad": 30,
+        "recomendacion": "Sin acción requerida."
+      }
     },
     {
       "id": "PH-2026-0879",
@@ -48,9 +87,22 @@
       "fechaReporte": "2026-08-12T08:47:00-04:00",
       "severidad": "Media",
       "estado": "Pendiente",
-      "imagenUrl": "https://picsum.photos/seed/pothole-irarrazaval-3115/800/600",
+      "imagenUrl": "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=800&q=80",
       "reportadoPor": "Inspector Municipal - C. Pizarro",
-      "descripcion": "Bache de mediana profundidad en pista de bajada, acumula agua tras lluvias."
+      "descripcion": "Bache de mediana profundidad en pista de bajada, acumula agua tras lluvias.",
+      "formulario": {
+        "flujoVehicular": "Alto",
+        "cercaniaColegioHospital": "Cercano a zona residencial y colegios",
+        "tipoVia": "Avenida",
+        "observacionCiudadana": "Se forma piscina al llover."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "50 cm",
+        "profundidadEstimada": "9 cm",
+        "puntajePrioridad": 72,
+        "recomendacion": "Bacheo y corrección de pendiente."
+      }
     },
     {
       "id": "PH-2026-0888",
@@ -61,74 +113,282 @@
       "fechaReporte": "2026-08-14T13:20:00-04:00",
       "severidad": "Alta",
       "estado": "En revisión",
-      "imagenUrl": "https://picsum.photos/seed/pothole-pajaritos-1890/800/600",
+      "imagenUrl": "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=800&q=80",
       "reportadoPor": "Cuadrilla Vial Poniente 2",
-      "descripcion": "Socavón de gran tamaño en pista exclusiva de buses, requiere cierre parcial."
+      "descripcion": "Socavón de gran tamaño en pista exclusiva de buses, requiere cierre parcial.",
+      "formulario": {
+        "flujoVehicular": "Muy Alto (Pista Red Bus)",
+        "cercaniaColegioHospital": "Cercano a Terminal de Buses y Mall",
+        "tipoVia": "Troncal Metropolitana",
+        "observacionCiudadana": "Peligro para transporte público."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "90 cm",
+        "profundidadEstimada": "16 cm",
+        "puntajePrioridad": 98,
+        "recomendacion": "Reparación estructural urgente."
+      }
     },
     {
-      "id": "PH-2026-0901",
-      "direccion": "Av. Pedro Fontova 6250, sector Renca Norte",
-      "comuna": "Renca",
-      "latitud": -33.4022,
-      "longitud": -70.7215,
-      "fechaReporte": "2026-08-16T10:02:00-04:00",
-      "severidad": "Baja",
-      "estado": "Pendiente",
-      "imagenUrl": "https://picsum.photos/seed/pothole-fontova-6250/800/600",
-      "reportadoPor": "Inspector Municipal - M. Toro",
-      "descripcion": "Deterioro superficial leve en berma derecha, sin riesgo inmediato."
-    },
-    {
-      "id": "PH-2026-0915",
-      "direccion": "Gran Avenida José Miguel Carrera 4890, esquina Lo Espejo",
-      "comuna": "San Miguel",
-      "latitud": -33.4951,
-      "longitud": -70.6521,
-      "fechaReporte": "2026-08-19T17:40:00-04:00",
-      "severidad": "Media",
-      "estado": "Reparado",
-      "imagenUrl": "https://picsum.photos/seed/pothole-granavenida-4890/800/600",
-      "reportadoPor": "Cuadrilla Vial Sur 4",
-      "descripcion": "Grieta reparada con asfalto en caliente durante intervención programada."
-    },
-    {
-      "id": "PH-2026-0927",
-      "direccion": "Av. Vicuña Mackenna 6801, frente a Plaza de La Florida",
-      "comuna": "La Florida",
-      "latitud": -33.5223,
-      "longitud": -70.5981,
-      "fechaReporte": "2026-08-21T07:55:00-04:00",
+      "id": "PH-2026-0889",
+      "direccion": "Av. Las Rejas Norte 950, Estación Central",
+      "comuna": "Estación Central",
+      "latitud": -33.4520,
+      "longitud": -70.7050,
+      "fechaReporte": "2026-08-15T10:00:00-04:00",
       "severidad": "Alta",
       "estado": "Pendiente",
-      "imagenUrl": "https://picsum.photos/seed/pothole-vicunamackenna-6801/800/600",
-      "reportadoPor": "Inspector Municipal - P. Salinas",
-      "descripcion": "Cavidad profunda con bordes irregulares, generó reclamos vecinales."
+      "imagenUrl": "https://images.unsplash.com/photo-1584467735811-628a8d3c14f9?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Inspector Municipal - E. Soto",
+      "descripcion": "Bache profundo en intersección con calle Ecuador.",
+      "formulario": {
+        "flujoVehicular": "Alto",
+        "cercaniaColegioHospital": "Cercano a centro médico",
+        "tipoVia": "Avenida Principal",
+        "observacionCiudadana": "Atochamiento vehicular por esquivar el bache."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "65 cm",
+        "profundidadEstimada": "11 cm",
+        "puntajePrioridad": 88,
+        "recomendacion": "Reparación rápida con asfalto caliente."
+      }
     },
     {
-      "id": "PH-2026-0938",
-      "direccion": "Av. Vitacura 4380, sector Parque Bicentenario",
-      "comuna": "Vitacura",
-      "latitud": -33.3902,
-      "longitud": -70.5701,
-      "fechaReporte": "2026-08-24T14:10:00-04:00",
-      "severidad": "Baja",
+      "id": "PH-2026-0890",
+      "direccion": "Calle Ecuador 4500, Estación Central",
+      "comuna": "Estación Central",
+      "latitud": -33.4580,
+      "longitud": -70.7100,
+      "fechaReporte": "2026-08-16T14:30:00-04:00",
+      "severidad": "Media",
       "estado": "En revisión",
-      "imagenUrl": "https://picsum.photos/seed/pothole-vitacura-4380/800/600",
-      "reportadoPor": "Cuadrilla Vial Oriente 2",
-      "descripcion": "Pequeña depresión en ciclovía adyacente, en evaluación técnica."
+      "imagenUrl": "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Patrulla Urbana",
+      "descripcion": "Deterioro de carpeta asfáltica en zona residencial.",
+      "formulario": {
+        "flujoVehicular": "Medio",
+        "cercaniaColegioHospital": "Cercano a colegio municipal",
+        "tipoVia": "Calle Secundaria",
+        "observacionCiudadana": "Molestia general de vecinos."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "45 cm",
+        "profundidadEstimada": "7 cm",
+        "puntajePrioridad": 62,
+        "recomendacion": "Bacheo programado."
+      }
     },
     {
-      "id": "PH-2026-0950",
-      "direccion": "Av. Recoleta 2100, esquina Av. Perú",
-      "comuna": "Recoleta",
-      "latitud": -33.4184,
-      "longitud": -70.6431,
-      "fechaReporte": "2026-08-27T09:30:00-04:00",
+      "id": "PH-2026-0891",
+      "direccion": "Av. 5 de Abril 3800, Estación Central",
+      "comuna": "Estación Central",
+      "latitud": -33.4650,
+      "longitud": -70.6900,
+      "fechaReporte": "2026-08-17T09:15:00-04:00",
+      "severidad": "Alta",
+      "estado": "Pendiente",
+      "imagenUrl": "https://images.unsplash.com/photo-1584467735811-628a8d3c14f9?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Vecino Autenticado",
+      "descripcion": "Cráter en calzada derecha frente a comercio local.",
+      "formulario": {
+        "flujoVehicular": "Alto",
+        "cercaniaColegioHospital": "Cercano a zona comercial",
+        "tipoVia": "Avenida",
+        "observacionCiudadana": "Riesgo de daño en suspensión."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "80 cm",
+        "profundidadEstimada": "14 cm",
+        "puntajePrioridad": 90,
+        "recomendacion": "Intervención prioritaria."
+      }
+    },
+    {
+      "id": "PH-2026-1001",
+      "direccion": "Av. Santa Rosa 13350, La Pintana",
+      "comuna": "La Pintana",
+      "latitud": -33.5828,
+      "longitud": -70.6346,
+      "fechaReporte": "2026-09-01T09:14:00-04:00",
+      "severidad": "Alta",
+      "estado": "Pendiente",
+      "imagenUrl": "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Patrulla Urbana La Pintana",
+      "descripcion": "Bache profundo en calzada principal, alto riesgo de daños vehiculares.",
+      "formulario": {
+        "flujoVehicular": "Muy Alto",
+        "cercaniaColegioHospital": "Cercano a centro de salud municipal",
+        "tipoVia": "Avenida Troncal",
+        "observacionCiudadana": "Frecuentes accidentes menores de motociclistas."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "75 cm",
+        "profundidadEstimada": "14 cm",
+        "puntajePrioridad": 94,
+        "recomendacion": "Intervención prioritaria en < 48 horas."
+      }
+    },
+    {
+      "id": "PH-2026-1002",
+      "direccion": "Calle Baldomero Lillo 1980, La Pintana",
+      "comuna": "La Pintana",
+      "latitud": -33.5790,
+      "longitud": -70.6400,
+      "fechaReporte": "2026-09-02T10:30:00-04:00",
+      "severidad": "Media",
+      "estado": "En revisión",
+      "imagenUrl": "https://images.unsplash.com/photo-1584467735811-628a8d3c14f9?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Inspector Vecinal",
+      "descripcion": "Hundimiento de asfalto tras rotura menor.",
+      "formulario": {
+        "flujoVehicular": "Medio",
+        "cercaniaColegioHospital": "Frente a establecimiento educacional",
+        "tipoVia": "Calle Secundaria",
+        "observacionCiudadana": "Acumulación de agua estancada."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "45 cm",
+        "profundidadEstimada": "8 cm",
+        "puntajePrioridad": 68,
+        "recomendacion": "Sondeo y bacheo superficial."
+      }
+    },
+    {
+      "id": "PH-2026-1003",
+      "direccion": "Av. Observatorio 4100, La Pintana",
+      "comuna": "La Pintana",
+      "latitud": -33.5650,
+      "longitud": -70.6500,
+      "fechaReporte": "2026-09-03T14:15:00-04:00",
+      "severidad": "Alta",
+      "estado": "Pendiente",
+      "imagenUrl": "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Operador Móvil App",
+      "descripcion": "Socavón considerable en carril.",
+      "formulario": {
+        "flujoVehicular": "Alto",
+        "cercaniaColegioHospital": "Cercano a zona comercial",
+        "tipoVia": "Avenida Principal",
+        "observacionCiudadana": "Urge señalización nocturna."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "85 cm",
+        "profundidadEstimada": "15 cm",
+        "puntajePrioridad": 91,
+        "recomendacion": "Reparación estructural."
+      }
+    },
+    {
+      "id": "PH-2026-1004",
+      "direccion": "Av. Gabriela Poniente 01200, La Pintana",
+      "comuna": "La Pintana",
+      "latitud": -33.5850,
+      "longitud": -70.6250,
+      "fechaReporte": "2026-09-04T08:30:00-04:00",
       "severidad": "Media",
       "estado": "Pendiente",
-      "imagenUrl": "https://picsum.photos/seed/pothole-recoleta-2100/800/600",
-      "reportadoPor": "Inspector Municipal - D. Herrera",
-      "descripcion": "Serie de baches en cadena en tramo de 20 metros, tránsito de camiones frecuente."
+      "imagenUrl": "https://images.unsplash.com/photo-1584467735811-628a8d3c14f9?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Patrulla Municipal",
+      "descripcion": "Bache en acceso a población.",
+      "formulario": {
+        "flujoVehicular": "Medio",
+        "cercaniaColegioHospital": "Cercano a jardín infantil",
+        "tipoVia": "Calle Principal",
+        "observacionCiudadana": "Peligroso para locomoción colectiva."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "50 cm",
+        "profundidadEstimada": "9 cm",
+        "puntajePrioridad": 70,
+        "recomendacion": "Reparación programada."
+      }
+    },
+    {
+      "id": "PH-2026-1101",
+      "direccion": "Av. Gran Avenida José Miguel Carrera 12800, El Bosque",
+      "comuna": "El Bosque",
+      "latitud": -33.5785,
+      "longitud": -70.6720,
+      "fechaReporte": "2026-09-01T16:45:00-04:00",
+      "severidad": "Baja",
+      "estado": "Reparado",
+      "imagenUrl": "https://images.unsplash.com/photo-1584467735811-628a8d3c14f9?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Cuadrilla Vial Sur",
+      "descripcion": "Fisura menor sellada con éxito.",
+      "formulario": {
+        "flujoVehicular": "Medio",
+        "cercaniaColegioHospital": "No",
+        "tipoVia": "Avenida",
+        "observacionCiudadana": "Atendido por cuadrilla."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "25 cm",
+        "profundidadEstimada": "4 cm",
+        "puntajePrioridad": 42,
+        "recomendacion": "Monitoreo preventivo."
+      }
+    },
+    {
+      "id": "PH-2026-1102",
+      "direccion": "Calle Los Morros 11500, El Bosque",
+      "comuna": "El Bosque",
+      "latitud": -33.5850,
+      "longitud": -70.6800,
+      "fechaReporte": "2026-09-03T11:00:00-04:00",
+      "severidad": "Alta",
+      "estado": "Pendiente",
+      "imagenUrl": "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Vecino Autenticado",
+      "descripcion": "Bache profundo frente a pasaje residencial.",
+      "formulario": {
+        "flujoVehicular": "Medio",
+        "cercaniaColegioHospital": "Cercano a jardín infantil",
+        "tipoVia": "Calle Residencial",
+        "observacionCiudadana": "Vehículos golpean sus bajos al virar."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "60 cm",
+        "profundidadEstimada": "12 cm",
+        "puntajePrioridad": 85,
+        "recomendacion": "Rellenado con mezcla asfáltica caliente."
+      }
+    },
+    {
+      "id": "PH-2026-1103",
+      "direccion": "Av. Padre Hurtado 13100, El Bosque",
+      "comuna": "El Bosque",
+      "latitud": -33.5700,
+      "longitud": -70.6750,
+      "fechaReporte": "2026-09-04T12:00:00-04:00",
+      "severidad": "Media",
+      "estado": "En revisión",
+      "imagenUrl": "https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&w=800&q=80",
+      "reportadoPor": "Inspector Comunal",
+      "descripcion": "Desgaste de calzada en paradero de buses.",
+      "formulario": {
+        "flujoVehicular": "Alto",
+        "cercaniaColegioHospital": "Cercano a centro cívico",
+        "tipoVia": "Avenida",
+        "observacionCiudadana": "Bache en zona de detención de micros."
+      },
+      "iaAnalisis": {
+        "modelo": "PotholeVision-CV v2.4",
+        "diametroEstimado": "50 cm",
+        "profundidadEstimada": "8 cm",
+        "puntajePrioridad": 67,
+        "recomendacion": "Reparación de bacheo local."
+      }
     }
   ]
 }
