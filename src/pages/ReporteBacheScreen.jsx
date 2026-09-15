@@ -8,7 +8,6 @@ export default function ReporteBacheScreen() {
   const [errorGps, setErrorGps] = useState(null);
   const [cargandoGps, setCargandoGps] = useState(false);
 
-  // Formulario de preguntas
   const [formData, setFormData] = useState({
     gravedadCiudadano: '',
     concurrenciaVial: '',
@@ -17,11 +16,9 @@ export default function ReporteBacheScreen() {
     descripcion: ''
   });
 
-  // Estados de envío
-  const [estadoEnvio, setEstadoEnvio] = useState('IDLE'); // IDLE | ENVIANDO | PROCESANDO | EXITOSO
+  const [estadoEnvio, setEstadoEnvio] = useState('IDLE');
   const [reporteResultado, setReporteResultado] = useState(null);
 
-  // 1. Detectar si entra desde computador
   useEffect(() => {
     const checkDevice = () => {
       const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -35,7 +32,6 @@ export default function ReporteBacheScreen() {
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
-  // 2. Obtener GPS automático al cargar
   useEffect(() => {
     obtenerUbicacion();
   }, []);
@@ -66,7 +62,6 @@ export default function ReporteBacheScreen() {
     );
   };
 
-  // 3. Captura de foto
   const handleFotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -75,7 +70,6 @@ export default function ReporteBacheScreen() {
     }
   };
 
-  // 4. Procesamiento de envío simulado
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -100,7 +94,6 @@ export default function ReporteBacheScreen() {
     }, 1000);
   };
 
-  // PANTALLA PARA COMPUTADOR (Bloqueo + QR)
   if (!esMovil) {
     return (
       <div style={styles.escritorioContenedor}>
@@ -120,10 +113,8 @@ export default function ReporteBacheScreen() {
     );
   }
 
-  // PANTALLA MÓVIL (Módulo Ciudadano)
   return (
     <div style={styles.contenedorMovil}>
-      {/* Encabezado */}
       <header style={styles.header}>
         <h1 style={{ margin: 0, fontSize: '20px', color: '#FFF' }}>Bache 0</h1>
         <span style={{ fontSize: '13px', color: '#FBCB05', fontWeight: 'bold' }}>Módulo Ciudadano</span>
@@ -151,8 +142,6 @@ export default function ReporteBacheScreen() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} style={styles.formulario}>
-          
-          {/* SECCIÓN 1: FOTO */}
           <div style={styles.seccion}>
             <label style={styles.label}>1. Fotografía del bache</label>
             <input 
@@ -175,7 +164,6 @@ export default function ReporteBacheScreen() {
             )}
           </div>
 
-          {/* SECCIÓN 2: GPS */}
           <div style={styles.seccion}>
             <label style={styles.label}>2. Ubicación GPS</label>
             {cargandoGps && <p style={{ fontSize: '14px', color: '#666' }}>Obteniendo ubicación...</p>}
@@ -194,7 +182,6 @@ export default function ReporteBacheScreen() {
             )}
           </div>
 
-          {/* SECCIÓN 3: PREGUNTAS */}
           <div style={styles.seccion}>
             <label style={styles.label}>3. Información del terreno</label>
             
@@ -255,7 +242,6 @@ export default function ReporteBacheScreen() {
             />
           </div>
 
-          {/* BOTÓN DE ENVÍO */}
           <button 
             type="submit" 
             disabled={estadoEnvio !== 'IDLE'}
@@ -274,7 +260,6 @@ export default function ReporteBacheScreen() {
   );
 }
 
-// ESTILOS EN CSS-IN-JS (COMPATIBLES CON REACT WEB)
 const styles = {
   escritorioContenedor: {
     backgroundColor: '#F4F6F8',

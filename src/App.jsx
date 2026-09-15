@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import MapaReportes from "./components/MapaReportes";
+import MapaTermico from "./components/MapaTermico";
 import ListaReportes from "./components/ListaReportes";
 import mockData from "./data/mockData.json";
 import { MUNICIPIOS_DATA } from "./data/municipiosConfig";
@@ -156,6 +157,7 @@ export default function App() {
             </div>
           )}
 
+
           {seccionActiva === "Mapa Térmico" && (
             <div className="space-y-6">
               <div>
@@ -163,7 +165,7 @@ export default function App() {
                 <p className="text-sm text-slate-500">Concentración de daños viales para priorización de cuadrillas municipales.</p>
               </div>
               <div className="bg-white p-5 rounded-xl shadow-xs border border-slate-200 h-[600px] overflow-hidden">
-                <MapaReportes reportes={reportesFiltrados} />
+                <MapaTermico reportes={reportesFiltrados} />
               </div>
             </div>
           )}
