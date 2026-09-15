@@ -1,38 +1,18 @@
-# bache0 - Plataforma SaaS municipal de gestión vial
+# PotholeVision (bache0)
 
-Guía de organización de carpetas y flujo de trabajo en equipo.
+**"Para los ciudadanos y municipalidades que sufren accidentes y lentitud por el mal estado de las calles, nuestro producto entrega una plataforma web que captura reportes georreferenciados en terreno y genera un mapa de calor interactivo para priorizar las reparaciones viales."**
 
-## 📁 Dónde va cada archivo (`src/`)
-- **`src/components/`**: Componentes de React (Ej: `MapaReportes.jsx`, `ListaReportes.jsx`, `DashboardLayout.jsx`).
-- **`src/data/`**: Archivos de datos (Ej: `mockData.json`).
-- **`src/pages/`**: Vistas principales de la aplicación.
-- **`src/assets/`**: Recursos visuales, imágenes o logos.
+## 👥 Equipo de Trabajo
+* **Elías Henríquez** (GitHub: [@eliashenriquez-gif](https://github.com/eliashenriquez-gif))
+* **David Ojeda** (GitHub: [@davidojeda-alt](https://github.com/davidojeda-alt))
+* **Bastián Mansilla** (GitHub: [@bastianmansilla](https://github.com/bastianmansilla))
 
----
+## 🔗 Enlaces del Proyecto
+* **Prototipo Navegable:** [Pega aquí el link definitivo de Vercel]
+* **Documentación y Diagramas:** Disponibles en la carpeta [/docs](./docs)
 
-## 🔄 Reglas de Oro para Git (¡Muy Importante!)
-Para evitar errores y no sobreescribir el trabajo de los demás, sigue siempre estos pasos en la terminal de Visual Studio Code:
-
-1. **Antes de empezar a codear (Traer lo último del equipo):**
-   ```bash
-   git pull
-
-```
-
-2. **Cuando termines tu avance (Subir tus cambios):**
-```bash
-git add .
-git commit -m "Breve descripción de lo que agregaste"
-git push
-
-```
-
----
-
-## 🛠️ Herramientas Necesarias
-
-* [Visual Studio Code](https://code.visualstudio.com/)
-* [Git para Windows](https://git-scm.com/download/win)
-
-```
-```
+## ⚙️ Instrucciones de Instalación
+Para levantar este proyecto en un entorno local, sigue estos pasos:
+1. Clona este repositorio en tu equipo local.
+2. Abre la terminal en la carpeta del proyecto y ejecuta: `npm install`
+3. Una vez instaladas las dependencias, enciende el servidor con: `npm run dev`
