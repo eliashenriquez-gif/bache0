@@ -1,122 +1,416 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
-import * as Location from 'expo-location';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useState, useEffect } from 'react';
 
 export default function ReporteBacheScreen() {
-  const [descripcion, setDescripcion] = useState('');
-  const [gravedad, setGravedad] = useState('Media');
-  const [imagen, setImagen] = useState<string | null>(null);
-  const [ubicacion, setUbicacion] = useState<{ lat: number; lng: number } | null>(null);
-  const [cargandoUbi, setCargandoUbi] = useState(false);
+  const [esMovil, setEsMovil] = useState(true);
+  const [foto, setFoto] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [coords, setCoords] = useState(null);
+  const [errorGps, setErrorGps] = useState(null);
+  const [cargandoGps, setCargandoGps] = useState(false);
 
-  const obtenerUbicacion = async () => {
-    setCargandoUbi(true);
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Se necesita acceso a la ubicación.');
-      setCargandoUbi(false);
+  // Formulario de preguntas
+  const [formData, setFormData] = useState({
+    gravedadCiudadano: '',
+    concurrenciaVial: '',
+    infraestructuraCritica: '',
+    clasificacionVial: 'Avenida Troncal (Ejemplo automático)',
+    descripcion: ''
+  });
+
+  // Estados de envío
+  const [estadoEnvio, setEstadoEnvio] = useState('IDLE'); // IDLE | ENVIANDO | PROCESANDO | EXITOSO
+  const [reporteResultado, setReporteResultado] = useState(null);
+
+  // 1. Detectar si entra desde computador
+  useEffect(() => {
+    const checkDevice = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobileDevice = /android|iphone|ipad|ipod|blackberry|windows phone/i.test(userAgent);
+      const isMobileWidth = window.innerWidth <= 768;
+      setEsMovil(isMobileDevice || isMobileWidth);
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
+  // 2. Obtener GPS automático al cargar
+  useEffect(() => {
+    obtenerUbicacion();
+  }, []);
+
+  const obtenerUbicacion = () => {
+    setCargandoGps(true);
+    setErrorGps(null);
+
+    if (!navigator.geolocation) {
+      setErrorGps('La geolocalización no es soportada por tu navegador.');
+      setCargandoGps(false);
       return;
     }
 
-    let location = await Location.getCurrentPositionAsync({});
-    setUbicacion({
-      lat: location.coords.latitude,
-      lng: location.coords.longitude,
-    });
-    setCargandoUbi(false);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoords({
+          latitud: position.coords.latitude,
+          longitud: position.coords.longitude
+        });
+        setCargandoGps(false);
+      },
+      () => {
+        setErrorGps('No pudimos obtener tu ubicación. Activa la ubicación de tu dispositivo para continuar.');
+        setCargandoGps(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
-  const tomarFoto = async () => {
-    let permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (permissionResult.granted === false) {
-      Alert.alert('Permiso denegado', 'Se necesita acceso a la cámara.');
+  // 3. Captura de foto
+  const handleFotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFoto(file);
+      setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // 4. Procesamiento de envío simulado
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!foto || !coords || !formData.gravedadCiudadano || !formData.concurrenciaVial || !formData.infraestructuraCritica) {
+      alert('Por favor toma la foto, activa el GPS y responde todas las preguntas del formulario.');
       return;
     }
 
-    let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.7,
-    });
+    setEstadoEnvio('ENVIANDO');
 
-    if (!result.canceled) {
-      setImagen(result.assets[0].uri);
-    }
+    setTimeout(() => {
+      setEstadoEnvio('PROCESANDO');
+      
+      setTimeout(() => {
+        setReporteResultado({
+          id: 'B0-0001',
+          prioridadSimulada: 'Alta',
+          mensaje: 'Tu reporte fue registrado y será procesado por Bache 0.'
+        });
+        setEstadoEnvio('EXITOSO');
+      }, 1500);
+    }, 1000);
   };
 
+  // PANTALLA PARA COMPUTADOR (Bloqueo + QR)
+  if (!esMovil) {
+    return (
+      <div style={styles.escritorioContenedor}>
+        <div style={styles.escritorioTarjeta}>
+          <h2 style={{ color: '#0033A0', marginTop: 0 }}>Módulo de Terreno</h2>
+          <p style={{ color: '#333', lineHeight: '1.5' }}>
+            Los reportes de baches están diseñados para realizarse directamente desde un dispositivo móvil.
+          </p>
+          <p style={{ fontWeight: 'bold', color: '#002270' }}>Ingresa desde tu celular para realizar un reporte.</p>
+          <img 
+            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://bache0.vercel.app/reporte" 
+            alt="Código QR de acceso móvil" 
+            style={{ marginTop: '15px', borderRadius: '8px', border: '1px solid #ddd', padding: '5px' }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // PANTALLA MÓVIL (Módulo Ciudadano)
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.titulo}>Reporte de Bache (Integrante 1)</Text>
+    <div style={styles.contenedorMovil}>
+      {/* Encabezado */}
+      <header style={styles.header}>
+        <h1 style={{ margin: 0, fontSize: '20px', color: '#FFF' }}>Bache 0</h1>
+        <span style={{ fontSize: '13px', color: '#FBCB05', fontWeight: 'bold' }}>Módulo Ciudadano</span>
+      </header>
 
-      <Text style={styles.label}>Evidencia Fotográfica:</Text>
-      {imagen && <Image source={{ uri: imagen }} style={styles.preview} />}
-      <TouchableOpacity style={styles.btnSecundario} onPress={tomarFoto}>
-        <Text style={styles.btnTexto}>📷 Tomar Foto del Bache</Text>
-      </TouchableOpacity>
+      {estadoEnvio === 'EXITOSO' ? (
+        <div style={styles.tarjetaConfirmacion}>
+          <h2 style={{ color: '#0033A0', marginTop: 0 }}>Reporte enviado correctamente</h2>
+          <p style={{ color: '#444' }}>{reporteResultado.mensaje}</p>
+          
+          <div style={styles.cajaResultado}>
+            <p style={{ margin: '8px 0' }}><strong>N.° de reporte:</strong> {reporteResultado.id}</p>
+            <p style={{ margin: '8px 0', fontSize: '18px', color: '#002270' }}>
+              <strong>Prioridad:</strong> <span style={{ color: '#D9534F' }}>{reporteResultado.prioridadSimulada}</span>
+            </p>
+            <small style={{ color: '#777' }}>(Resultado de prueba simulado)</small>
+          </div>
 
-      <Text style={styles.label}>Ubicación GPS:</Text>
-      {ubicacion ? (
-        <Text style={styles.coords}>
-          Lat: {ubicacion.lat.toFixed(5)} | Lng: {ubicacion.lng.toFixed(5)}
-        </Text>
-      ) : (
-        <Text style={styles.coords}>Ubicación no capturada</Text>
-      )}
-      <TouchableOpacity style={styles.btnSecundario} onPress={obtenerUbicacion}>
-        <Text style={styles.btnTexto}>
-          {cargandoUbi ? 'Obteniendo GPS...' : '📍 Capturar Mi Ubicación'}
-        </Text>
-      </TouchableOpacity>
-
-      <Text style={styles.label}>Gravedad del Bache:</Text>
-      <View style={styles.opcionesContenedor}>
-        {['Baja', 'Media', 'Alta'].map((item) => (
-          <TouchableOpacity
-            key={item}
-            style={[styles.btnOpcion, gravedad === item && styles.btnOpcionActiva]}
-            onPress={() => setGravedad(item)}
+          <button 
+            onClick={() => window.location.reload()} 
+            style={styles.btnSecundario}
           >
-            <Text style={gravedad === item ? styles.txtActivo : styles.txtInactivo}>
-              {item}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+            Realizar otro reporte
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} style={styles.formulario}>
+          
+          {/* SECCIÓN 1: FOTO */}
+          <div style={styles.seccion}>
+            <label style={styles.label}>1. Fotografía del bache</label>
+            <input 
+              type="file" 
+              accept="image/*" 
+              capture="environment" 
+              id="cameraInput" 
+              onChange={handleFotoChange}
+              style={{ display: 'none' }}
+            />
+            <label htmlFor="cameraInput" style={styles.btnCamara}>
+              📷 {preview ? 'Cambiar fotografía' : 'Tomar fotografía'}
+            </label>
 
-      <Text style={styles.label}>Descripción del Problema:</Text>
-      <TextInput
-        style={styles.input}
-        multiline
-        numberOfLines={3}
-        placeholder="Ej: Bache profundo en el carril derecho..."
-        value={descripcion}
-        onChangeText={setDescripcion}
-      />
+            {preview && (
+              <div style={{ marginTop: '10px' }}>
+                <img src={preview} alt="Vista previa" style={styles.preview} />
+                <p style={{ fontSize: '12px', color: 'green', margin: '5px 0' }}>✓ Fotografía cargada</p>
+              </div>
+            )}
+          </div>
 
-      <TouchableOpacity 
-        style={styles.btnGuardar} 
-        onPress={() => Alert.alert('Éxito', 'Reporte guardado correctamente')}
-      >
-        <Text style={styles.btnGuardarTexto}>Guardar Reporte</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          {/* SECCIÓN 2: GPS */}
+          <div style={styles.seccion}>
+            <label style={styles.label}>2. Ubicación GPS</label>
+            {cargandoGps && <p style={{ fontSize: '14px', color: '#666' }}>Obteniendo ubicación...</p>}
+            {coords && (
+              <p style={{ color: 'green', fontSize: '14px', margin: '5px 0' }}>
+                📍 Ubicación obtenida ({coords.latitud.toFixed(4)}, {coords.longitud.toFixed(4)})
+              </p>
+            )}
+            {errorGps && (
+              <div>
+                <p style={{ color: 'red', fontSize: '13px', margin: '5px 0' }}>{errorGps}</p>
+                <button type="button" onClick={obtenerUbicacion} style={styles.btnReintentar}>
+                  Reintentar GPS
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* SECCIÓN 3: PREGUNTAS */}
+          <div style={styles.seccion}>
+            <label style={styles.label}>3. Información del terreno</label>
+            
+            <p style={styles.sublabel}>Gravedad percibida:</p>
+            <select 
+              value={formData.gravedadCiudadano} 
+              onChange={(e) => setFormData({...formData, gravedadCiudadano: e.target.value})}
+              style={styles.select}
+            >
+              <option value="" disabled>-- Selecciona gravedad --</option>
+              <option value="Baja">Baja</option>
+              <option value="Media">Media</option>
+              <option value="Alta">Alta</option>
+            </select>
+
+            <p style={styles.sublabel}>¿Es muy concurrida la calle?</p>
+            <select 
+              value={formData.concurrenciaVial} 
+              onChange={(e) => setFormData({...formData, concurrenciaVial: e.target.value})}
+              style={styles.select}
+            >
+              <option value="" disabled>-- Selecciona concurrencia --</option>
+              <option value="Baja">Baja</option>
+              <option value="Media">Media</option>
+              <option value="Alta">Alta</option>
+              <option value="Muy Alta">Muy Alta</option>
+            </select>
+
+            <p style={styles.sublabel}>Proximidad a infraestructura crítica:</p>
+            <select 
+              value={formData.infraestructuraCritica} 
+              onChange={(e) => setFormData({...formData, infraestructuraCritica: e.target.value})}
+              style={styles.select}
+            >
+              <option value="" disabled>-- Selecciona opción --</option>
+              <option value="Sin infraestructura crítica cercana">Sin infraestructura crítica cercana</option>
+              <option value="Cercano a colegio">Cercano a colegio</option>
+              <option value="Cercano a centro de salud municipal">Cercano a centro de salud municipal</option>
+              <option value="Cercano a estación/terminal">Cercano a estación/terminal</option>
+              <option value="Cercano a otra infraestructura relevante">Cercano a otra infraestructura relevante</option>
+            </select>
+
+            <p style={styles.sublabel}>Clasificación vial estimada:</p>
+            <input 
+              type="text" 
+              value={formData.clasificacionVial} 
+              disabled 
+              style={{ ...styles.input, backgroundColor: '#EFEFEF', color: '#666' }}
+            />
+
+            <p style={styles.sublabel}>Observación / Descripción:</p>
+            <textarea 
+              rows="3" 
+              placeholder="Ej: Bache profundo en calzada principal..." 
+              value={formData.descripcion} 
+              onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
+              style={styles.textarea}
+            />
+          </div>
+
+          {/* BOTÓN DE ENVÍO */}
+          <button 
+            type="submit" 
+            disabled={estadoEnvio !== 'IDLE'}
+            style={{
+              ...styles.btnGuardar,
+              backgroundColor: estadoEnvio === 'IDLE' ? '#0033A0' : '#888'
+            }}
+          >
+            {estadoEnvio === 'IDLE' && 'Enviar reporte'}
+            {estadoEnvio === 'ENVIANDO' && 'Enviando reporte...'}
+            {estadoEnvio === 'PROCESANDO' && 'Procesando información...'}
+          </button>
+        </form>
+      )}
+    </div>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#f5f5f5' },
-  titulo: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, marginTop: 30, color: '#333' },
-  label: { fontSize: 16, fontWeight: '600', marginTop: 15, marginBottom: 5, color: '#444' },
-  input: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#ccc' },
-  preview: { width: '100%', height: 200, borderRadius: 8, marginBottom: 10 },
-  coords: { fontSize: 14, color: '#666', marginBottom: 5, fontStyle: 'italic' },
-  btnSecundario: { backgroundColor: '#007AFF', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 10 },
-  btnTexto: { color: '#fff', fontWeight: 'bold' },
-  opcionesContenedor: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  btnOpcion: { flex: 1, padding: 10, borderWidth: 1, borderColor: '#ccc', alignItems: 'center', marginHorizontal: 2, borderRadius: 6 },
-  btnOpcionActiva: { backgroundColor: '#34C759', borderColor: '#34C759' },
-  txtActivo: { color: '#fff', fontWeight: 'bold' },
-  txtInactivo: { color: '#333' },
-  btnGuardar: { backgroundColor: '#28a745', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 20, marginBottom: 40 },
-  btnGuardarTexto: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-});
+// ESTILOS EN CSS-IN-JS (COMPATIBLES CON REACT WEB)
+const styles = {
+  escritorioContenedor: {
+    backgroundColor: '#F4F6F8',
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px',
+    boxSizing: 'border-box'
+  },
+  escritorioTarjeta: {
+    backgroundColor: '#FFFFFF',
+    padding: '30px',
+    borderRadius: '12px',
+    textAlign: 'center',
+    maxWidth: '400px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+  },
+  contenedorMovil: {
+    backgroundColor: '#F4F6F8',
+    minHeight: '100vh',
+    padding: '15px',
+    boxSizing: 'border-box',
+    fontFamily: 'sans-serif'
+  },
+  header: {
+    backgroundColor: '#0033A0',
+    padding: '15px',
+    borderRadius: '8px',
+    textAlign: 'center',
+    marginBottom: '15px'
+  },
+  formulario: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px'
+  },
+  seccion: {
+    backgroundColor: '#FFFFFF',
+    padding: '15px',
+    borderRadius: '8px',
+    border: '1px solid #E0E0E0'
+  },
+  label: {
+    fontSize: '16px',
+    fontWeight: 'bold',
+    color: '#002270',
+    display: 'block',
+    marginBottom: '10px'
+  },
+  sublabel: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#333',
+    margin: '10px 0 5px 0'
+  },
+  select: {
+    width: '100%',
+    padding: '10px',
+    borderRadius: '6px',
+    border: '1px solid #CCC',
+    fontSize: '14px',
+    boxSizing: 'border-box'
+  },
+  input: {
+    width: '100%',
+    padding: '10px',
+    borderRadius: '6px',
+    border: '1px solid #CCC',
+    fontSize: '14px',
+    boxSizing: 'border-box'
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px',
+    borderRadius: '6px',
+    border: '1px solid #CCC',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    resize: 'vertical'
+  },
+  btnCamara: {
+    display: 'inline-block',
+    backgroundColor: '#0033A0',
+    color: '#FFF',
+    padding: '12px',
+    borderRadius: '6px',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    width: '100%',
+    boxSizing: 'border-box'
+  },
+  preview: {
+    width: '100%',
+    maxHeight: '200px',
+    objectFit: 'cover',
+    borderRadius: '6px'
+  },
+  btnReintentar: {
+    backgroundColor: '#FBCB05',
+    border: 'none',
+    padding: '8px 12px',
+    borderRadius: '4px',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  },
+  btnGuardar: {
+    color: '#FFF',
+    padding: '15px',
+    borderRadius: '8px',
+    border: 'none',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    marginTop: '10px'
+  },
+  tarjetaConfirmacion: {
+    backgroundColor: '#FFF',
+    padding: '20px',
+    borderRadius: '8px',
+    textAlign: 'center',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+  },
+  cajaResultado: {
+    backgroundColor: '#F4F6F8',
+    padding: '15px',
+    borderRadius: '6px',
+    margin: '15px 0'
+  },
+  btnSecundario: {
+    backgroundColor: '#FBCB05',
+    border: 'none',
+    padding: '12px 20px',
+    borderRadius: '6px',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  }
+};
