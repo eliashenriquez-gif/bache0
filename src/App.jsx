@@ -8,10 +8,17 @@ import { LayoutDashboard, FileText, Flame, Settings, Building2, X, CheckCircle, 
 import ReporteBacheScreen from "./pages/ReporteBacheScreen";
 
 export default function App() {
+  // 1. PRIMERO LOS HOOKS (Regla de React)
   const [comunaKey, setComunaKey] = useState("la_pintana");
   const [seccionActiva, setSeccionActiva] = useState("Inicio");
   const [reporteSeleccionado, setReporteSeleccionado] = useState(null);
 
+  // 2. EL MURO QUE SEPARA AL CIUDADANO DE LA MUNICIPALIDAD
+  if (window.location.pathname.includes("/reporte")) {
+    return <ReporteBacheScreen />;
+  }
+
+  // 3. TODO EL CÓDIGO DE LA MUNICIPALIDAD SE MANTIENE INTACTO ABAJO
   const tenantActual = MUNICIPIOS_DATA[comunaKey];
 
   // FILTRADO ESTRICTO POR COMUNA REAL (Basado en el campo "comuna" del JSON)
@@ -157,7 +164,6 @@ export default function App() {
               </div>
             </div>
           )}
-
 
           {seccionActiva === "Mapa Térmico" && (
             <div className="space-y-6">
