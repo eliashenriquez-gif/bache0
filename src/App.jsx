@@ -5,6 +5,7 @@ import ListaReportes from "./components/ListaReportes";
 import mockData from "./data/mockData.json";
 import { MUNICIPIOS_DATA } from "./data/municipiosConfig";
 import { LayoutDashboard, FileText, Flame, Settings, Building2, X, CheckCircle, AlertTriangle, Cpu, MapPin, Activity } from "lucide-react";
+import ReporteBacheScreen from "./pages/ReporteBacheScreen";
 
 export default function App() {
   const [comunaKey, setComunaKey] = useState("la_pintana");
