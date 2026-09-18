@@ -9,7 +9,8 @@
 - **David Ojeda** — GitHub: [@davidojeda-alt](https://github.com/davidojeda-alt)
 
 ## 🔗 Prototipo Navegable
-
+- **Módulo municipal:** [https://bache0.vercel.app/](https://bache0.vercel.app/) 
+- **Módulo ciudadano:** [https://bache0.vercel.app/reporte](https://bache0.vercel.app/reporte)
 
 
 El prototipo corresponde a una misma aplicación web con dos módulos según el contexto de uso.
