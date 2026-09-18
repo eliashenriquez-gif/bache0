@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import logoBache from '../assets/logo_bache0.png';
+import logoBacheBlanco from '../assets/logo_bache0_blanco_hd.png';
+import logoBacheAzul from '../assets/logo_bache0_azul_hd.png';
 
 const COLORS = {
   blue: '#0033A0',
@@ -198,7 +199,7 @@ export default function ReporteBacheScreen() {
           <div style={styles.desktopContent}>
             <div style={styles.desktopKicker}>MÓDULO DE TERRENO</div>
 
-            <img src={logoBache} alt="Logo Bache 0" style={styles.desktopLogo} />
+            <img src={logoBacheAzul} alt="Logo Bache 0" style={styles.desktopLogo} />
 
             <h1 style={styles.desktopTitle}>
               Reporta un bache desde el lugar donde lo encontraste.
@@ -282,7 +283,7 @@ export default function ReporteBacheScreen() {
       <header style={styles.header}>
         <div style={styles.headerRow}>
           <span style={styles.headerButton}><Icon name="back" size={19} /></span>
-          <img src={logoBache} alt="Bache 0" style={styles.mobileLogo} />
+          <img src={logoBacheBlanco} alt="Bache 0" style={styles.mobileLogo} />
           <span style={styles.headerButton}><Icon name="home" size={18} /></span>
         </div>
         <span style={styles.headerSubtitle}>Módulo Ciudadano de Reportes</span>
