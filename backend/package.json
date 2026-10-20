@@ -1,0 +1,19 @@
+{
+  "name": "bache0-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Capa de persistencia de Bache 0 para Hito 2",
+  "scripts": {
+    "test": "node --test",
+    "smoke:db": "node scripts/smoke-db.js",
+    "seed:photos": "node scripts/prepare-seed-photos.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
