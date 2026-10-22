@@ -1,0 +1,2577 @@
+openapi: 3.1.0
+info:
+  title: Bache 0 API
+  version: 1.1.0
+  summary: Contrato objetivo de API REST de Bache 0
+  description: Contrato unificado de Bache 0 API v1. Las extensiones x-bache0-phase señalan la etapa prevista.
+    Los ciudadanos envían reportes como invitados sin cuenta; solo personal municipal y superadministradores
+    usan JWT. La operación real requiere implementar y probar cada ruta.
+servers:
+- url: http://localhost:3000
+  description: Desarrollo local. No usar HTTP fuera de localhost.
+tags:
+- name: Salud
+- name: Municipalidades
+- name: Ubicación
+- name: Autenticación
+- name: Reportes
+- name: Usuarios
+- name: Auditoría
+- name: Visión artificial
+paths:
+  /health:
+    get:
+      summary: Comprobar estado del servicio
+      description: Endpoint técnico sin autenticación. Devuelve una comprobación básica del proceso API; no
+        debe exponer configuración ni secretos.
+      tags:
+      - Salud
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Servicio disponible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+      operationId: getHealth
+  /api/v1/municipalidades:
+    get:
+      summary: Listar municipalidades
+      description: Devuelve municipalidades activas con servicio Bache 0 habilitado. El parámetro incluir_inactivas
+        solo es permitido para superadministrador autenticado.
+      tags:
+      - Municipalidades
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Lista municipalidades activas y con servicio habilitado. No devuelve geometrías internas
+            ni datos administrativos sensibles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MunicipalityListResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      parameters:
+      - name: incluir_inactivas
+        in: query
+        required: false
+        description: Incluir inactivas; solo superadministrador.
+        schema:
+          type: boolean
+          default: false
+      security:
+      - {}
+      - BearerAuth: []
+      operationId: listMunicipalidades
+    post:
+      summary: Crear municipalidad
+      description: Solo superadministradores. La fila se crea activa si no se indica lo contrario.
+      tags:
+      - Municipalidades
+      x-bache0-phase: H3 / evolución
+      responses:
+        '201':
+          description: Municipalidad creada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MunicipalityResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflicto de unicidad o estado incompatible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        description: Cuerpo JSON de la solicitud.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MunicipalityCreate'
+      security:
+      - BearerAuth: []
+      operationId: createMunicipalidad
+  /api/v1/municipalidades/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: Identificador numérico del recurso
+      schema:
+        type: integer
+        minimum: 1
+    get:
+      summary: Obtener municipalidad
+      description: Devuelve los datos públicos de una municipalidad.
+      tags:
+      - Municipalidades
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Municipalidad encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MunicipalityResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+      operationId: getMunicipalidad
+    put:
+      summary: Actualizar municipalidad
+      description: Solo superadministradores. Reemplaza sus campos editables. La desactivación no elimina reportes
+        históricos asociados.
+      tags:
+      - Municipalidades
+      x-bache0-phase: H3 / evolución
+      responses:
+        '200':
+          description: Municipalidad actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MunicipalityResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflicto de unicidad o estado incompatible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        description: Cuerpo JSON de la solicitud.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MunicipalityUpdate'
+      security:
+      - BearerAuth: []
+      operationId: updateMunicipalidad
+    delete:
+      summary: Desactivar municipalidad
+      description: Desactivación lógica; no elimina físicamente la municipalidad ni sus usuarios/reportes históricos.
+        Solo superadministradores.
+      tags:
+      - Municipalidades
+      x-bache0-phase: H3 / evolución
+      responses:
+        '204':
+          description: Municipalidad desactivada; respuesta sin cuerpo.
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: deactivateMunicipalidad
+  /api/v1/ubicaciones/resolver:
+    post:
+      summary: Resolver ubicación
+      description: Devuelve una vista previa de dirección, comuna y cobertura municipal. El backend consulta
+        el proveedor geográfico configurado. Si el ciudadano mueve el pin se envían las nuevas coordenadas
+        con metodo_ubicacion=pin_manual. Si la comuna no tiene cobertura responde 422 MUNICIPALIDAD_SIN_COBERTURA
+        con el mensaje definido en el contrato; si no puede determinar la comuna, responde 422 UBICACION_NO_RESUELTA.
+        Una calle no identificada puede quedar nula si la comuna cubierta sí se resuelve. La clasificación
+        vial oficial queda pendiente para H3 si no existe una fuente fiable.
+      tags:
+      - Ubicación
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Resolución completa o parcial.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResolutionResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Se excedió el límite de solicitudes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Dependencia necesaria temporalmente no disponible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ubicación no resuelta o comuna sin cobertura; el reporte no se crea.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                MunicipalityNotCovered:
+                  summary: MUNICIPALIDAD_SIN_COBERTURA
+                  value:
+                    error:
+                      code: MUNICIPALIDAD_SIN_COBERTURA
+                      message: La comuna de {comuna_detectada} todavía no cuenta con el servicio Bache 0. Si
+                        la ubicación no es correcta, mueve el pin y vuelve a verificarla.
+                      details:
+                      - field: comuna_detectada
+                        issue: La comuna no está habilitada para el servicio.
+                      request_id: req_example123
+                LocationNotResolved:
+                  summary: UBICACION_NO_RESUELTA
+                  value:
+                    error:
+                      code: UBICACION_NO_RESUELTA
+                      message: No pudimos confirmar la comuna de esta ubicación. Mueve el pin a la ubicación
+                        del bache y vuelve a intentarlo.
+                      details:
+                      - field: latitud_longitud
+                        issue: No se obtuvo una comuna fiable.
+                      request_id: req_example123
+                LowPrecision:
+                  summary: LOCATION_PRECISION_LOW
+                  value:
+                    error:
+                      code: LOCATION_PRECISION_LOW
+                      message: La ubicación es poco precisa. Mueve el pin hasta la ubicación del bache y vuelve
+                        a verificarla.
+                      details:
+                      - field: precision_ubicacion_m
+                        issue: La precisión GPS supera el umbral de 50 metros.
+                      request_id: req_example123
+      requestBody:
+        required: true
+        description: Cuerpo JSON de la solicitud.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationResolveRequest'
+      security: []
+      operationId: resolveLocation
+  /api/v1/auth/login:
+    post:
+      summary: Iniciar sesión
+      description: Solo para funcionarios municipales y superadministradores. Valida correo y contraseña, devuelve
+        JWT Bearer válido por 1800 segundos. No existe registro ni login ciudadano. El correo se normaliza;
+        credenciales fallidas devuelven un error genérico. Máximo 5 intentos fallidos por origen/cuenta cada
+        15 minutos. Nunca se registran contraseñas ni tokens.
+      tags:
+      - Autenticación
+      x-bache0-phase: H2 - última fase
+      responses:
+        '200':
+          description: Sesión municipal iniciada; el access token expira en 30 minutos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Credenciales incorrectas, cuenta inactiva o cuenta que no pertenece al personal municipal.
+            Mensaje genérico, sin revelar si el correo existe.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Se excedió el límite de intentos de inicio de sesión.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        description: Cuerpo JSON de la solicitud.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      security: []
+      operationId: login
+  /api/v1/auth/me:
+    get:
+      summary: Consultar sesión actual
+      description: Devuelve el perfil municipal vigente del token. Rol, estado de cuenta y municipalidad se
+        leen de la base de datos; no se confían claims de autorización desactualizados.
+      tags:
+      - Autenticación
+      x-bache0-phase: H2 - última fase
+      responses:
+        '200':
+          description: Usuario actual.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: getCurrentUser
+  /api/v1/reportes:
+    post:
+      summary: Crear reporte ciudadano
+      description: Crea un reporte ciudadano como invitado; no hay cuenta ni login ciudadano. Recibe la fotografía
+        en multipart/form-data y las coordenadas confirmadas del pin. El backend resuelve y vuelve a validar
+        la comuna/cobertura; no confía en comuna, dirección, municipalidad_id, estado, folio, foto_url ni datos
+        de IA enviados por el cliente. Si la comuna no está cubierta o no puede resolverse, responde 422 y
+        no crea el reporte. Las consultas de geocodificación pueden reutilizarse desde caché de corta duración.
+      tags:
+      - Reportes
+      x-bache0-phase: H2
+      responses:
+        '201':
+          description: Reporte creado y persistido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Fotografía supera 10 MB.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '415':
+          description: Formato de fotografía no permitido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Comuna sin servicio Bache 0 o ubicación que no se puede resolver de forma fiable; no
+            se crea el reporte.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                MunicipalityNotCovered:
+                  summary: MUNICIPALIDAD_SIN_COBERTURA
+                  value:
+                    error:
+                      code: MUNICIPALIDAD_SIN_COBERTURA
+                      message: La comuna de {comuna_detectada} todavía no cuenta con el servicio Bache 0. Si
+                        la ubicación no es correcta, mueve el pin y vuelve a verificarla.
+                      details:
+                      - field: comuna_detectada
+                        issue: La comuna no está habilitada para el servicio.
+                      request_id: req_example123
+                LocationNotResolved:
+                  summary: UBICACION_NO_RESUELTA
+                  value:
+                    error:
+                      code: UBICACION_NO_RESUELTA
+                      message: No pudimos confirmar la comuna de esta ubicación. Mueve el pin a la ubicación
+                        del bache y vuelve a intentarlo.
+                      details:
+                      - field: latitud_longitud
+                        issue: No se obtuvo una comuna fiable.
+                      request_id: req_example123
+                LowPrecision:
+                  summary: LOCATION_PRECISION_LOW
+                  value:
+                    error:
+                      code: LOCATION_PRECISION_LOW
+                      message: La ubicación es poco precisa. Mueve el pin hasta la ubicación del bache y vuelve
+                        a verificarla.
+                      details:
+                      - field: precision_ubicacion_m
+                        issue: La precisión GPS supera el umbral de 50 metros.
+                      request_id: req_example123
+        '429':
+          description: Se excedió el límite de solicitudes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Servicio geográfico temporalmente no disponible; no se crea el reporte.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        description: El ciudadano no envía dirección, comuna, municipalidad_id, estado, folio ni foto_url.
+          La foto es única, con JPEG/PNG/WebP hasta 10 MB.
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportCreateRequest'
+            encoding:
+              foto:
+                contentType: image/jpeg, image/png, image/webp
+      security: []
+      operationId: createReport
+    get:
+      summary: Listar reportes
+      description: Lista paginada. Inspector y administrador municipal solo ven reportes de la municipalidad
+        de su cuenta. Superadministrador puede consultar globalmente y filtrar por municipalidad. La municipalidad
+        de un usuario regular nunca se toma del query.
+      tags:
+      - Reportes
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Lista paginada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportPageResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      parameters:
+      - name: estado
+        in: query
+        required: false
+        description: Estado de gestión.
+        schema:
+          type: string
+          enum:
+          - pendiente
+          - en_revision
+          - reparado
+      - name: severidad
+        in: query
+        required: false
+        description: Severidad indicada por el ciudadano.
+        schema:
+          type: string
+          enum:
+          - baja
+          - media
+          - alta
+      - name: municipalidad_id
+        in: query
+        required: false
+        description: Filtro global; solo superadministrador.
+        schema:
+          type: integer
+          minimum: 1
+      - name: page
+        in: query
+        required: false
+        description: Página desde 1.
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: limit
+        in: query
+        required: false
+        description: Resultados por página (máximo 100).
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      security:
+      - BearerAuth: []
+      operationId: listReports
+  /api/v1/reportes/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: ID interno del reporte
+      schema:
+        type: integer
+        minimum: 1
+    get:
+      summary: Obtener reporte
+      description: Inspector, administrador municipal o superadministrador autorizado. Un usuario municipal
+        no puede consultar un reporte de otra municipalidad; ese caso devuelve 404.
+      tags:
+      - Reportes
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Reporte encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: getReport
+    put:
+      summary: Actualizar datos de gestión del reporte
+      description: Reemplaza el conjunto de campos gestionables. No modifica la ubicación, la municipalidad,
+        el usuario creador, la fotografía ni los resultados de IA; para ubicación se usa su endpoint específico.
+        Requiere administrador municipal o superadministrador.
+      tags:
+      - Reportes
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Reporte actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        description: Cuerpo JSON de la solicitud.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportUpdateRequest'
+      security:
+      - BearerAuth: []
+      operationId: updateReport
+    delete:
+      summary: Archivar reporte
+      description: 'Borrado lógico: marca archived_at y registra evento de auditoría. La respuesta no contiene
+        body.'
+      tags:
+      - Reportes
+      x-bache0-phase: H2
+      responses:
+        '204':
+          description: Reporte archivado; sin cuerpo.
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: archiveReport
+  /api/v1/reportes/{id}/foto:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: ID interno del reporte
+      schema:
+        type: integer
+        minimum: 1
+    get:
+      summary: Obtener fotografía del reporte
+      description: Devuelve la fotografía solo al personal con permiso para consultar el reporte. No expone
+        rutas físicas ni acceso público.
+      tags:
+      - Reportes
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Archivo de fotografía.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: getReportPhoto
+  /api/v1/reportes/{id}/ubicacion:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: ID interno del reporte
+      schema:
+        type: integer
+        minimum: 1
+    put:
+      summary: Corregir ubicación de un reporte
+      description: Solo administración municipal autorizada o superadministración. Actualiza las coordenadas,
+        vuelve a resolver los metadatos y crea un evento de auditoría. La municipalidad no puede modificarse
+        enviándola como dato libre.
+      tags:
+      - Reportes
+      x-bache0-phase: H3
+      responses:
+        '200':
+          description: Ubicación actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ubicación incompatible con cobertura o inválida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        description: Cuerpo JSON de la solicitud.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationUpdateRequest'
+      security:
+      - BearerAuth: []
+      operationId: updateReportLocation
+  /api/v1/reportes/{id}/asignacion:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: ID interno del reporte
+      schema:
+        type: integer
+        minimum: 1
+    put:
+      summary: Asignar reporte a municipalidad
+      description: Solo superadministradores. Se utiliza para resolver reportes retenidos sin una asignación
+        fiable. Debe verificar la municipalidad activa y registrar motivo/actor en auditoría.
+      tags:
+      - Reportes
+      x-bache0-phase: H3 / evolución
+      responses:
+        '200':
+          description: Reporte asignado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflicto de unicidad o estado incompatible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        description: Cuerpo JSON de la solicitud.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportAssignmentRequest'
+      security:
+      - BearerAuth: []
+      operationId: assignReport
+  /api/v1/reportes/{id}/historial:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: ID interno del reporte
+      schema:
+        type: integer
+        minimum: 1
+    get:
+      summary: Consultar historial de un reporte
+      description: Devuelve eventos de auditoría append-only. Los eventos se registran a partir de H2; esta
+        consulta se habilita en H3.
+      tags:
+      - Auditoría
+      x-bache0-phase: H3 / evolución
+      responses:
+        '200':
+          description: Historial del reporte.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventListResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: getReportHistory
+  /api/v1/reportes/{id}/analisis-vision:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: ID interno del reporte
+      schema:
+        type: integer
+        minimum: 1
+    get:
+      summary: Listar análisis de visión de un reporte
+      description: Devuelve las ejecuciones disponibles; el resultado puede ser una lista vacía. Solo usuarios
+        autorizados para el reporte.
+      tags:
+      - Visión artificial
+      x-bache0-phase: H3
+      responses:
+        '200':
+          description: Lista de análisis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisionAnalysisListResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: listVisionAnalyses
+    post:
+      summary: Solicitar análisis de visión
+      description: Crea una ejecución asíncrona mediante VisionService y responde 202 Accepted. Requiere que
+        exista una fotografía. No determina por sí sola la prioridad final del reporte.
+      tags:
+      - Visión artificial
+      x-bache0-phase: H3
+      responses:
+        '202':
+          description: Análisis aceptado; pendiente de ejecución.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisionAnalysisResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: No hay fotografía o existe ejecución incompatible/duplicada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Dependencia necesaria temporalmente no disponible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: requestVisionAnalysis
+  /api/v1/analisis-vision/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: ID interno del análisis de visión
+      schema:
+        type: integer
+        minimum: 1
+    get:
+      summary: Consultar estado de análisis de visión
+      description: Devuelve estado, modelo/proveedor y predicciones registradas. No genera otra inferencia.
+      tags:
+      - Visión artificial
+      x-bache0-phase: H3
+      responses:
+        '200':
+          description: Análisis encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisionAnalysisResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: getVisionAnalysis
+  /api/v1/usuarios:
+    get:
+      summary: Listar usuarios
+      description: Lista cuentas exclusivamente de funcionarios municipales y superadministradores. No existen
+        cuentas ciudadanas. Un administrador municipal solo puede listar usuarios de su propia municipalidad.
+      tags:
+      - Usuarios
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Lista paginada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPageResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      parameters:
+      - name: rol
+        in: query
+        required: false
+        description: Filtro por rol.
+        schema:
+          type: string
+          enum:
+          - inspector
+          - administrador_municipal
+          - superadministrador
+      - name: municipalidad_id
+        in: query
+        required: false
+        description: Filtro global; sujeto a permisos.
+        schema:
+          type: integer
+          minimum: 1
+      - name: page
+        in: query
+        required: false
+        description: Página desde 1.
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - name: limit
+        in: query
+        required: false
+        description: Resultados por página (máximo 100).
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      security:
+      - BearerAuth: []
+      operationId: listUsers
+    post:
+      summary: Crear usuario de gestión
+      description: Crea una cuenta de funcionario; no existe registro público. El backend calcula hash Argon2id.
+        Un administrador municipal solo puede crear inspectores de su propia municipalidad; solo superadministración
+        crea administradores municipales.
+      tags:
+      - Usuarios
+      x-bache0-phase: H2
+      responses:
+        '201':
+          description: Usuario creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflicto de unicidad o estado incompatible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        description: Cuerpo JSON de la solicitud.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffUserCreateRequest'
+      security:
+      - BearerAuth: []
+      operationId: createUser
+  /api/v1/usuarios/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: ID interno del usuario
+      schema:
+        type: integer
+        minimum: 1
+    get:
+      summary: Obtener usuario
+      description: No incluye password_hash ni credenciales. El acceso respeta el ámbito municipal. No hay
+        cuentas ciudadanas; nunca devuelve password_hash. La autorización por municipalidad se aplica en backend.
+      tags:
+      - Usuarios
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Usuario encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: getUser
+    put:
+      summary: Actualizar usuario
+      description: Reemplaza campos editables. Reglas de backend impiden que un administrador municipal eleve
+        su rol o mueva usuarios a otra municipalidad sin autorización. No cambia contraseñas; el hash nunca
+        se expone. No hay cuentas ciudadanas; nunca devuelve password_hash. La autorización por municipalidad
+        se aplica en backend.
+      tags:
+      - Usuarios
+      x-bache0-phase: H2
+      responses:
+        '200':
+          description: Usuario actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Parámetros o datos inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflicto de unicidad o estado incompatible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        description: Cuerpo JSON de la solicitud.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffUserUpdateRequest'
+      security:
+      - BearerAuth: []
+      operationId: updateUser
+    delete:
+      summary: Desactivar usuario
+      description: Desactiva la cuenta sin borrar la fila ni sus relaciones históricas. No hay cuentas ciudadanas;
+        nunca devuelve password_hash. La autorización por municipalidad se aplica en backend.
+      tags:
+      - Usuarios
+      x-bache0-phase: H2
+      responses:
+        '204':
+          description: Usuario desactivado; sin cuerpo.
+        '401':
+          description: Token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No tiene permisos para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El recurso no existe o no está disponible para el solicitante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error inesperado del servidor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - BearerAuth: []
+      operationId: deactivateUser
+  /api/v1/auth/change-password:
+    post:
+      summary: Cambiar contraseña propia
+      description: Solo personal municipal autenticado. Requiere la contraseña actual; el Service actualiza
+        el hash Argon2id. No implementa recuperación pública de contraseña.
+      tags:
+      - Autenticación
+      x-bache0-phase: H2 - última fase
+      operationId: changeOwnPassword
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Contraseña actualizada. No devuelve la contraseña ni su hash.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          description: Se excedió el límite de intentos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/v1/reportes/{id}/estado:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: ID interno del reporte
+      schema:
+        type: integer
+        minimum: 1
+    patch:
+      summary: Cambiar estado operativo del reporte
+      description: Inspector o administrador municipal solo en su municipalidad; superadministrador global.
+        Registra evento de auditoría.
+      tags:
+      - Reportes
+      x-bache0-phase: H2
+      operationId: updateReportStatus
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportStatusUpdateRequest'
+      responses:
+        '200':
+          description: Estado actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+      - status
+      - timestamp
+      properties:
+        status:
+          type: string
+          enum:
+          - ok
+        timestamp:
+          type: string
+          format: date-time
+    ErrorDetail:
+      type: object
+      required:
+      - field
+      - issue
+      properties:
+        field:
+          type: string
+        issue:
+          type: string
+    ErrorBody:
+      type: object
+      required:
+      - code
+      - message
+      - details
+      - request_id
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+        request_id:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+    Pagination:
+      type: object
+      required:
+      - page
+      - limit
+      - total
+      - total_pages
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        total_pages:
+          type: integer
+          minimum: 0
+    Severity:
+      type: string
+      enum:
+      - baja
+      - media
+      - alta
+    TrafficLevel:
+      type: string
+      enum:
+      - baja
+      - media
+      - alta
+      - muy_alta
+    CriticalInfrastructure:
+      type: string
+      enum:
+      - ninguna
+      - colegio
+      - centro_salud
+      - estacion_terminal
+      - otra
+    ReportStatus:
+      type: string
+      enum:
+      - pendiente
+      - en_revision
+      - reparado
+    AssignmentStatus:
+      type: string
+      enum:
+      - asignado
+    RoadClassification:
+      type:
+      - string
+      - 'null'
+      enum:
+      - expresa
+      - troncal
+      - colectora
+      - servicio
+      - local
+      - null
+    RoadClassificationStatus:
+      type: string
+      enum:
+      - confirmada
+      - ambigua
+      - pendiente
+      - no_disponible
+    GeocodingStatus:
+      type: string
+      enum:
+      - resuelta
+      - parcial
+      - requiere_confirmacion
+      - pendiente
+    LocationMethod:
+      type: string
+      enum:
+      - gps
+      - pin_manual
+    MunicipalitySummary:
+      type: object
+      required:
+      - id
+      - nombre
+      - comuna
+      - region
+      - activa
+      - servicio_activo
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        comuna:
+          type: string
+        region:
+          type: string
+        activa:
+          type: boolean
+        servicio_activo:
+          type: boolean
+          description: Indica si Bache 0 recibe reportes de esta comuna.
+    Municipality:
+      type: object
+      required:
+      - id
+      - nombre
+      - comuna
+      - region
+      - activa
+      - created_at
+      - updated_at
+      - servicio_activo
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nombre:
+          type: string
+          maxLength: 150
+        comuna:
+          type: string
+          maxLength: 100
+        region:
+          type: string
+          maxLength: 100
+        activa:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        servicio_activo:
+          type: boolean
+          description: Indica si Bache 0 recibe reportes de esta comuna.
+    MunicipalityCreate:
+      type: object
+      required:
+      - nombre
+      - comuna
+      - region
+      - servicio_activo
+      properties:
+        nombre:
+          type: string
+          maxLength: 150
+        comuna:
+          type: string
+          maxLength: 100
+        region:
+          type: string
+          maxLength: 100
+        activa:
+          type: boolean
+          default: true
+        servicio_activo:
+          type: boolean
+          description: Indica si Bache 0 recibe reportes de esta comuna.
+    MunicipalityUpdate:
+      type: object
+      required:
+      - nombre
+      - comuna
+      - region
+      - activa
+      - servicio_activo
+      properties:
+        nombre:
+          type: string
+          maxLength: 150
+        comuna:
+          type: string
+          maxLength: 100
+        region:
+          type: string
+          maxLength: 100
+        activa:
+          type: boolean
+        servicio_activo:
+          type: boolean
+          description: Indica si Bache 0 recibe reportes de esta comuna.
+    MunicipalityResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Municipality'
+    MunicipalityListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MunicipalitySummary'
+    LocationResolveRequest:
+      type: object
+      required:
+      - latitud
+      - longitud
+      - metodo_ubicacion
+      properties:
+        latitud:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitud:
+          type: number
+          minimum: -180
+          maximum: 180
+        precision_ubicacion_m:
+          type:
+          - number
+          - 'null'
+          minimum: 0
+        metodo_ubicacion:
+          $ref: '#/components/schemas/LocationMethod'
+    LocationMunicipality:
+      type: object
+      required:
+      - id
+      - nombre
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+    LocationResolution:
+      type: object
+      required:
+      - estado_resolucion
+      - latitud
+      - longitud
+      - metodo_ubicacion
+      - clasificacion_vial_estado
+      properties:
+        estado_resolucion:
+          $ref: '#/components/schemas/GeocodingStatus'
+        latitud:
+          type: number
+        longitud:
+          type: number
+        precision_ubicacion_m:
+          type:
+          - number
+          - 'null'
+          minimum: 0
+        metodo_ubicacion:
+          $ref: '#/components/schemas/LocationMethod'
+        direccion_detectada:
+          type:
+          - string
+          - 'null'
+        calle_detectada:
+          type:
+          - string
+          - 'null'
+        comuna_detectada:
+          type:
+          - string
+          - 'null'
+        region_detectada:
+          type:
+          - string
+          - 'null'
+        municipalidad:
+          $ref: '#/components/schemas/LocationMunicipality'
+        clasificacion_vial:
+          $ref: '#/components/schemas/RoadClassification'
+        clasificacion_vial_estado:
+          $ref: '#/components/schemas/RoadClassificationStatus'
+        clasificacion_vial_fuente:
+          type:
+          - string
+          - 'null'
+        clasificacion_vial_verificada_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      description: Respuesta exitosa solo cuando se identificó una comuna con cobertura habilitada. La clasificación
+        vial puede quedar pendiente.
+    LocationResolutionResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/LocationResolution'
+    Report:
+      type: object
+      required:
+      - id
+      - folio
+      - municipalidad_id
+      - latitud
+      - longitud
+      - metodo_ubicacion
+      - ubicacion_confirmada
+      - estado_geocodificacion
+      - estado_asignacion
+      - severidad
+      - estado
+      - concurrencia_vial
+      - infraestructura_critica
+      - foto_url
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        folio:
+          type: string
+          readOnly: true
+          example: BA-2026-00123
+        municipalidad_id:
+          type: integer
+          minimum: 1
+          readOnly: true
+          description: Asignada por el backend tras validar comuna/cobertura.
+        latitud:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitud:
+          type: number
+          minimum: -180
+          maximum: 180
+        precision_ubicacion_m:
+          type:
+          - number
+          - 'null'
+          minimum: 0
+        metodo_ubicacion:
+          $ref: '#/components/schemas/LocationMethod'
+        ubicacion_confirmada:
+          type: boolean
+        direccion_detectada:
+          type:
+          - string
+          - 'null'
+        calle_detectada:
+          type:
+          - string
+          - 'null'
+        comuna_detectada:
+          type:
+          - string
+          - 'null'
+        region_detectada:
+          type:
+          - string
+          - 'null'
+        estado_geocodificacion:
+          $ref: '#/components/schemas/GeocodingStatus'
+        estado_asignacion:
+          $ref: '#/components/schemas/AssignmentStatus'
+        clasificacion_vial:
+          $ref: '#/components/schemas/RoadClassification'
+        clasificacion_vial_estado:
+          $ref: '#/components/schemas/RoadClassificationStatus'
+        clasificacion_vial_fuente:
+          type:
+          - string
+          - 'null'
+        clasificacion_vial_verificada_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        severidad:
+          $ref: '#/components/schemas/Severity'
+        estado:
+          $ref: '#/components/schemas/ReportStatus'
+        concurrencia_vial:
+          $ref: '#/components/schemas/TrafficLevel'
+        infraestructura_critica:
+          $ref: '#/components/schemas/CriticalInfrastructure'
+        descripcion:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
+        foto_url:
+          type: string
+          readOnly: true
+          example: /api/v1/reportes/123/foto
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        archivado_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          readOnly: true
+      description: Reporte ciudadano creado como invitado; no se guarda una cuenta ciudadana ni un usuario
+        creador.
+    ReportCreateRequest:
+      type: object
+      required:
+      - foto
+      - latitud
+      - longitud
+      - metodo_ubicacion
+      - ubicacion_confirmada
+      - severidad
+      - concurrencia_vial
+      - infraestructura_critica
+      properties:
+        foto:
+          type: string
+          format: binary
+          description: Una imagen JPEG, PNG o WebP, máximo 10 MB. Validación de MIME y firma binaria en servidor.
+        latitud:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitud:
+          type: number
+          minimum: -180
+          maximum: 180
+        precision_ubicacion_m:
+          type:
+          - number
+          - 'null'
+          minimum: 0
+          description: Precisión informada por GPS en metros; null u omitida si el pin se seleccionó manualmente.
+        metodo_ubicacion:
+          $ref: '#/components/schemas/LocationMethod'
+        ubicacion_confirmada:
+          type: boolean
+          enum:
+          - true
+        severidad:
+          $ref: '#/components/schemas/Severity'
+        concurrencia_vial:
+          $ref: '#/components/schemas/TrafficLevel'
+        infraestructura_critica:
+          $ref: '#/components/schemas/CriticalInfrastructure'
+        descripcion:
+          type: string
+          maxLength: 2000
+      description: Creación pública como invitado. No requiere token ni usuario ciudadano.
+    ReportUpdateRequest:
+      type: object
+      required:
+      - severidad
+      - estado
+      - concurrencia_vial
+      - infraestructura_critica
+      properties:
+        severidad:
+          $ref: '#/components/schemas/Severity'
+        estado:
+          $ref: '#/components/schemas/ReportStatus'
+        concurrencia_vial:
+          $ref: '#/components/schemas/TrafficLevel'
+        infraestructura_critica:
+          $ref: '#/components/schemas/CriticalInfrastructure'
+        descripcion:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
+    LocationUpdateRequest:
+      type: object
+      required:
+      - latitud
+      - longitud
+      - metodo_ubicacion
+      - ubicacion_confirmada
+      properties:
+        latitud:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitud:
+          type: number
+          minimum: -180
+          maximum: 180
+        precision_ubicacion_m:
+          type:
+          - number
+          - 'null'
+          minimum: 0
+        metodo_ubicacion:
+          $ref: '#/components/schemas/LocationMethod'
+        ubicacion_confirmada:
+          type: boolean
+          enum:
+          - true
+    ReportAssignmentRequest:
+      type: object
+      required:
+      - municipalidad_id
+      - motivo
+      properties:
+        municipalidad_id:
+          type: integer
+          minimum: 1
+        motivo:
+          type: string
+          minLength: 5
+          maxLength: 500
+    ReportResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Report'
+    ReportPageResponse:
+      type: object
+      required:
+      - data
+      - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    Role:
+      type: string
+      enum:
+      - inspector
+      - administrador_municipal
+      - superadministrador
+    User:
+      type: object
+      required:
+      - id
+      - nombre_completo
+      - email
+      - rol
+      - activo
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nombre_completo:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        rol:
+          $ref: '#/components/schemas/Role'
+        municipalidad_id:
+          type:
+          - integer
+          - 'null'
+        activo:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      description: Cuenta exclusivamente de funcionario municipal o superadministrador. No representa ciudadanos,
+        que reportan como invitados.
+    UserResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+    UserPageResponse:
+      type: object
+      required:
+      - data
+      - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    LoginRequest:
+      type: object
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 1
+          maxLength: 128
+      additionalProperties: false
+    LoginResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - access_token
+          - token_type
+          - expires_in
+          - usuario
+          properties:
+            access_token:
+              type: string
+            token_type:
+              type: string
+              enum:
+              - Bearer
+            expires_in:
+              type: integer
+              description: Tiempo de validez del token en segundos.
+            usuario:
+              $ref: '#/components/schemas/User'
+    StaffUserCreateRequest:
+      type: object
+      required:
+      - nombre_completo
+      - email
+      - password
+      - rol
+      - municipalidad_id
+      properties:
+        nombre_completo:
+          type: string
+          minLength: 2
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 128
+          description: Contraseña inicial; el backend guarda solo un hash Argon2id.
+        rol:
+          type: string
+          enum:
+          - inspector
+          - administrador_municipal
+        municipalidad_id:
+          type: integer
+          minimum: 1
+      additionalProperties: false
+    StaffUserUpdateRequest:
+      type: object
+      required:
+      - nombre_completo
+      - email
+      - rol
+      - municipalidad_id
+      - activo
+      properties:
+        nombre_completo:
+          type: string
+          minLength: 2
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        rol:
+          type: string
+          enum:
+          - inspector
+          - administrador_municipal
+        municipalidad_id:
+          type: integer
+          minimum: 1
+        activo:
+          type: boolean
+      additionalProperties: false
+    AuditEvent:
+      type: object
+      required:
+      - id
+      - entidad
+      - entidad_id
+      - accion
+      - created_at
+      properties:
+        id:
+          type: integer
+        actor_usuario_id:
+          type:
+          - integer
+          - 'null'
+        entidad:
+          type: string
+          enum:
+          - reporte
+          - usuario
+          - municipalidad
+          - analisis_vision
+        entidad_id:
+          type: integer
+        accion:
+          type: string
+        antes:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        despues:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        motivo:
+          type:
+          - string
+          - 'null'
+        created_at:
+          type: string
+          format: date-time
+    AuditEventListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+    VisionAnalysisStatus:
+      type: string
+      enum:
+      - pendiente
+      - procesando
+      - completado
+      - fallido
+    VisionDetection:
+      type: object
+      required:
+      - etiqueta
+      - confianza
+      properties:
+        etiqueta:
+          type: string
+        confianza:
+          type: number
+          minimum: 0
+          maximum: 1
+        caja:
+          type:
+          - object
+          - 'null'
+          required:
+          - x
+          - y
+          - ancho
+          - alto
+          properties:
+            x:
+              type: number
+              minimum: 0
+              maximum: 1
+            y:
+              type: number
+              minimum: 0
+              maximum: 1
+            ancho:
+              type: number
+              minimum: 0
+              maximum: 1
+            alto:
+              type: number
+              minimum: 0
+              maximum: 1
+    VisionAnalysis:
+      type: object
+      required:
+      - id
+      - reporte_id
+      - estado
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        reporte_id:
+          type: integer
+        estado:
+          $ref: '#/components/schemas/VisionAnalysisStatus'
+        proveedor:
+          type:
+          - string
+          - 'null'
+        modelo:
+          type:
+          - string
+          - 'null'
+        version_modelo:
+          type:
+          - string
+          - 'null'
+        detecciones:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisionDetection'
+        error_code:
+          type:
+          - string
+          - 'null'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        analizado_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    VisionAnalysisResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/VisionAnalysis'
+    VisionAnalysisListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisionAnalysis'
+    ChangePasswordRequest:
+      type: object
+      required:
+      - current_password
+      - new_password
+      properties:
+        current_password:
+          type: string
+          format: password
+          minLength: 1
+          maxLength: 128
+        new_password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 128
+      additionalProperties: false
+    MessageResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - message
+          properties:
+            message:
+              type: string
+              example: Contraseña actualizada.
+    ReportStatusUpdateRequest:
+      type: object
+      required:
+      - estado
+      properties:
+        estado:
+          $ref: '#/components/schemas/ReportStatus'
+      additionalProperties: false
+  responses:
+    BadRequest:
+      description: Parámetros o datos inválidos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Token ausente, inválido o expirado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: No tiene permisos para esta operación.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: El recurso no existe o no está disponible para el solicitante.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflicto de unicidad o estado incompatible.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServerError:
+      description: Error inesperado del servidor.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
