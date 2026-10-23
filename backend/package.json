@@ -9,10 +9,13 @@
     "seed:photos": "node scripts/prepare-seed-photos.js"
   },
   "dependencies": {
+    "argon2": "^0.45.1",
     "cors": "^2.8.6",
     "dotenv": "^18.0.7",
     "express": "^5.3.0",
-    "pg": "^8.13.1"
+    "express-async-errors": "^3.1.1",
+    "pg": "^8.13.1",
+    "uuid": "^9.0.1"
   },
   "engines": {
     "node": ">=20"
