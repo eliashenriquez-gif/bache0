@@ -3,10 +3,15 @@ const userController = require('../controllers/userController');
 
 const router = Router();
 
-// POST /api/v1/usuarios — Crear cuenta municipal.
-// TODO(auth): cuando exista el middleware JWT, proteger esta ruta con
-// authenticate + authorize('administrador_municipal', 'superadministrador').
+// TODO(auth): cuando exista el middleware JWT, proteger todas las rutas con
+// authenticate + authorize('administrador_municipal', 'superadministrador'), y aplicar
+// el aislamiento por municipalidad (contrato, secciones 4.3 y 7.4).
 // Hasta entonces, probar solo en local (contrato, sección 4.4).
-router.post('/', userController.createUser);
+
+router.post('/', userController.createUser);        // Crear cuenta municipal
+router.get('/', userController.listUsers);          // Listar (paginado)
+router.get('/:id', userController.getUserById);     // Detalle
+router.put('/:id', userController.updateUser);      // Actualizar datos permitidos
+router.delete('/:id', userController.deactivateUser); // Desactivación lógica (204)
 
 module.exports = router;
