@@ -11,7 +11,6 @@ const PASSWORD_MAX_LENGTH = 128;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-const CREATE_FIELDS = ['nombre', 'email', 'password', 'rol', 'municipalidad_id'];
 // PUT no acepta password (se cambia en /auth/change-password) ni activo (se desactiva con DELETE).
 const UPDATE_FIELDS = ['nombre', 'email', 'rol', 'municipalidad_id'];
 
@@ -19,7 +18,7 @@ const UPDATE_FIELDS = ['nombre', 'email', 'rol', 'municipalidad_id'];
 // TEMPORAL: "repositorio" en memoria.
 // Simula la tabla `usuarios`. Cuando Elías entregue el Repository de PostgreSQL,
 // se reemplaza este bloque por: const userRepository = require('../repositories/userRepository');
-// manteniendo la misma interfaz (insert, findById, findAll, update).
+// manteniendo la misma interfaz (insert, findById, findByEmail, findAll, update).
 // Un email repetido lanza un error con code '23505', igual que PostgreSQL al violar UNIQUE;
 // el Service lo traduce a 409 (ver mapUniqueViolation).
 // ---------------------------------------------------------------------------
@@ -41,6 +40,11 @@ const userRepository = {
 
   async findById(id) {
     const record = store.find((u) => u.id === id);
+    return record ? { ...record } : null;
+  },
+
+  async findByEmail(email) {
+    const record = store.find((u) => u.email === email);
     return record ? { ...record } : null;
   },
 
@@ -293,4 +297,54 @@ async function deactivateUser(rawId) {
   }
 }
 
-module.exports = { createUser, listUsers, getUserById, updateUser, deactivateUser };
+// ---------------------------------------------------------------------------
+// Soporte para autenticación (lo usan authService y el middleware authenticate)
+// El hash nunca sale de este archivo: estas funciones devuelven usuarios públicos o null.
+// ---------------------------------------------------------------------------
+
+// Hash ficticio para igualar el tiempo de respuesta cuando el correo no existe
+// y así no revelar qué cuentas están registradas.
+let dummyHashPromise;
+function getDummyHash() {
+  if (!dummyHashPromise) {
+    dummyHashPromise = argon2.hash('contrasena-ficticia-para-igualar-tiempos', { type: argon2.argon2id });
+  }
+  return dummyHashPromise;
+}
+
+/**
+ * Verifica email + contraseña. Devuelve el usuario público si las credenciales son válidas
+ * y la cuenta está activa; en cualquier otro caso devuelve null.
+ */
+async function verifyCredentials(email, password) {
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  const record = await userRepository.findByEmail(normalizedEmail);
+  const hash = record ? record.password_hash : await getDummyHash();
+
+  let passwordOk = false;
+  try {
+    passwordOk = await argon2.verify(hash, password);
+  } catch (err) {
+    passwordOk = false; // hash malformado u otro fallo de verificación: se trata como credencial inválida
+  }
+
+  if (!record || !passwordOk || !record.activo) return null;
+  return toPublicUser(record);
+}
+
+/** Usuario vigente según el id del token (sub). Devuelve null si el id es inválido o no existe. */
+async function findCurrentUser(rawId) {
+  if (!/^[1-9]\d*$/.test(String(rawId)) || !Number.isSafeInteger(Number(rawId))) return null;
+  const user = await userRepository.findById(Number(rawId));
+  return user ? toPublicUser(user) : null;
+}
+
+module.exports = {
+  createUser,
+  listUsers,
+  getUserById,
+  updateUser,
+  deactivateUser,
+  verifyCredentials,
+  findCurrentUser,
+};
