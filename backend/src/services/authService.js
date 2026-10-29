@@ -65,4 +65,24 @@ async function login(body) {
   };
 }
 
-module.exports = { login };
+/** GET /auth/me — perfil vigente del funcionario autenticado (sin hash ni secretos). */
+async function getProfile(actor) {
+  const user = await userService.findCurrentUser(actor.id);
+  if (!user) {
+    throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Se requiere autenticación válida.');
+  }
+  return user;
+}
+
+/** POST /auth/change-password — body: { current_password, new_password } */
+async function changePassword(actor, body) {
+  const input = body === undefined || body === null ? {} : body;
+  if (typeof input !== 'object' || Array.isArray(input)) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'Hay campos que requieren corrección.', [
+      { field: 'body', issue: 'Debe ser un objeto JSON.' },
+    ]);
+  }
+  await userService.changePassword(actor.id, input.current_password, input.new_password);
+}
+
+module.exports = { login, getProfile, changePassword };
