@@ -1,8 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 //const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const ubicacionRoutes = require('./routes/ubicacionRoutes'); // <-- AGREGA ESTA LÍNEA
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 const { seedSuperadmin } = require('./bootstrap/seedSuperadmin');
 
@@ -14,6 +16,7 @@ app.use(express.json());
 app.use('/api/v1/auth', authRoutes);
 //app.use('/api/v1/reportes', reportRoutes);
 app.use('/api/v1/usuarios', userRoutes);
+app.use('/api/v1/ubicaciones', ubicacionRoutes); // <-- AGREGA ESTA LÍNEA
 
 app.use(notFoundHandler);
 app.use(errorHandler);

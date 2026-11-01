@@ -93,3 +93,30 @@ bache0/
 ├── README.md
 └── .gitignore
 ```
+
+
+
+---
+
+## Módulo Ciudadano (David)
+
+### Reglas de Negocio - Fotografías
+- Formatos permitidos: JPEG, PNG y WebP.
+- Tamaño máximo: 10 MB.
+- Seguridad: Se valida la extensión del archivo y se almacena con un nombre UUID para evitar colisiones.
+- Almacenamiento: `backend/uploads/`.
+
+### Reglas de Negocio - Ubicación
+- El ciudadano debe confirmar la ubicación moviendo el pin en el mapa (Leaflet).
+- La resolución de calle y comuna se realiza mediante geocodificación inversa (OpenStreetMap / Nominatim).
+- Cobertura actual: La Pintana, Puente Alto, Santiago, San Bernardo.
+- Errores manejados:
+  - `UBICACION_NO_RESUELTA` (404).
+  - `COMUNA_SIN_COBERTURA` (403).
+  - `PROVEEDOR_CAIDO` (503).
+
+### Flujo del Reporte Ciudadano
+1. El ciudadano (invitado) toma una foto.
+2. Se obtiene el GPS automático o se ubica manualmente en el mapa.
+3. Se envía `multipart/form-data` a `POST /api/v1/reportes`.
+4. Se genera un folio único (`PH-YYYY-XXXX`) y se devuelve confirmación.
