@@ -1,0 +1,2939 @@
+{
+  "info": {
+    "name": "Bache 0 - Hito 2 (Auth y Usuarios)",
+    "description": "Colección de pruebas del Hito 2 de Bache 0 (login JWT, perfil, cambio de contraseña y CRUD de usuarios con ámbito).\n\nCÓMO USARLA\n1. Levanta el servidor con el .env (que siembra al superadministrador).\n2. En las variables de la colección, reemplaza `superadmin_password` por la contraseña que pusiste en SEED_SUPERADMIN_PASSWORD (y revisa `superadmin_email`). No guardes ni subas al repositorio una exportación con la contraseña real.\n3. Ejecuta las carpetas en orden (Postman: Run collection). Cada petición guarda en variables lo que necesita la siguiente (tokens, ids y `run_id`, que hace únicos los correos de cada corrida).\n4. Si el servidor se reinicia, los usuarios en memoria desaparecen: vuelve a correr desde la carpeta 1.\n\nLos scripts de las pestañas Tests (asserts y guardado automático de variables) se ejecutan en Postman. En Thunder Client las peticiones se importan, pero si los scripts no corren hay que copiar a mano los tokens e ids a las variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Autenticación (superadministrador)",
+      "description": "Login con el superadministrador sembrado desde el .env, token y perfil.",
+      "item": [
+        {
+          "name": "1.1 Login superadmin (guarda el token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superadmin_email}}\",\n  \"password\": \"{{superadmin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Identificador único de esta corrida: evita emails duplicados al repetir la colección.",
+                  "pm.collectionVariables.set(\"run_id\", String(Date.now()));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Devuelve token Bearer de 30 minutos\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.token_type).to.equal(\"Bearer\");",
+                  "  pm.expect(j.data.expires_in).to.equal(1800);",
+                  "  pm.expect(j.data.user.rol).to.equal(\"superadministrador\");",
+                  "  pm.expect(j.data.user.municipalidad_id).to.be.null;",
+                  "});",
+                  "pm.test(\"La respuesta no incluye password_hash\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(JSON.stringify(j)).to.not.include(\"password_hash\");",
+                  "});",
+                  "pm.test(\"Guarda superadmin_token\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.access_token).to.exist;",
+                  "  pm.collectionVariables.set(\"superadmin_token\", j.data.access_token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Login con contraseña incorrecta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Cuenta como 1 intento fallido; el siguiente login exitoso reinicia el contador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superadmin_email}}\",\n  \"password\": \"ClaveIncorrecta-12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: INVALID_CREDENTIALS\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"INVALID_CREDENTIALS\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 GET /auth/me sin token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: AUTHENTICATION_REQUIRED\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"AUTHENTICATION_REQUIRED\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 GET /auth/me con token (guarda superadmin_id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Perfil del superadministrador\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.email).to.equal(pm.collectionVariables.get(\"superadmin_email\").toLowerCase());",
+                  "  pm.expect(j.data.rol).to.equal(\"superadministrador\");",
+                  "  pm.expect(j.data.municipalidad_id).to.be.null;",
+                  "  pm.expect(j.data.activo).to.be.true;",
+                  "});",
+                  "pm.test(\"La respuesta no incluye password_hash\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(JSON.stringify(j)).to.not.include(\"password_hash\");",
+                  "});",
+                  "pm.test(\"Guarda superadmin_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.id).to.exist;",
+                  "  pm.collectionVariables.set(\"superadmin_id\", j.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Superadministrador crea cuentas municipales",
+      "description": "Crea dos administradores (municipalidades 7 y 9) y un inspector de la 9 para probar el ámbito después.",
+      "item": [
+        {
+          "name": "2.1 Crear administrador municipal (muni 7)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Luis Rojas\",\n  \"email\": \"admin7.{{run_id}}@nunoa.test\",\n  \"password\": \"{{admin_password}}\",\n  \"rol\": \"administrador_municipal\",\n  \"municipalidad_id\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "});",
+                  "pm.test(\"Cuenta creada en la municipalidad 7\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.rol).to.equal(\"administrador_municipal\");",
+                  "  pm.expect(j.data.municipalidad_id).to.equal(7);",
+                  "  pm.expect(j.data.activo).to.be.true;",
+                  "});",
+                  "pm.test(\"La respuesta no incluye password_hash\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(JSON.stringify(j)).to.not.include(\"password_hash\");",
+                  "});",
+                  "pm.test(\"Guarda admin_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.id).to.exist;",
+                  "  pm.collectionVariables.set(\"admin_id\", j.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Crear administrador municipal (muni 9)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Pedro Vera\",\n  \"email\": \"admin9.{{run_id}}@providencia.test\",\n  \"password\": \"{{admin_password}}\",\n  \"rol\": \"administrador_municipal\",\n  \"municipalidad_id\": 9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "});",
+                  "pm.test(\"Guarda admin9_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.id).to.exist;",
+                  "  pm.collectionVariables.set(\"admin9_id\", j.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Crear inspector (muni 9)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Diego Muñoz\",\n  \"email\": \"insp9.{{run_id}}@providencia.test\",\n  \"password\": \"{{inspector_password}}\",\n  \"rol\": \"inspector\",\n  \"municipalidad_id\": 9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "});",
+                  "pm.test(\"Guarda insp9_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.id).to.exist;",
+                  "  pm.collectionVariables.set(\"insp9_id\", j.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4 Email duplicado -> 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Duplicado\",\n  \"email\": \"admin7.{{run_id}}@nunoa.test\",\n  \"password\": \"{{admin_password}}\",\n  \"rol\": \"inspector\",\n  \"municipalidad_id\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(409);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: CONFLICT\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"CONFLICT\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"details apunta al campo email\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.error.details.map(d => d.field)).to.include(\"email\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5 Body vacío -> 400 con detalle por campo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: VALIDATION_ERROR\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"VALIDATION_ERROR\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"details lista los campos obligatorios\", () => {",
+                  "  const j = pm.response.json();",
+                  "  const campos = j.error.details.map(d => d.field);",
+                  "  pm.expect(campos).to.include(\"nombre\");",
+                  "  pm.expect(campos).to.include(\"email\");",
+                  "  pm.expect(campos).to.include(\"password\");",
+                  "  pm.expect(campos).to.include(\"rol\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.6 Superadmin con municipalidad -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Root Falso\",\n  \"email\": \"root.falso.{{run_id}}@bache0.test\",\n  \"password\": \"{{admin_password}}\",\n  \"rol\": \"superadministrador\",\n  \"municipalidad_id\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: VALIDATION_ERROR\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"VALIDATION_ERROR\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"Se rechaza municipalidad_id para superadministrador\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.error.details.map(d => d.field)).to.include(\"municipalidad_id\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.7 Listar usuarios (superadmin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Lista paginada con la forma del contrato\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "  pm.expect(j.pagination).to.have.property(\"page\");",
+                  "  pm.expect(j.pagination).to.have.property(\"limit\");",
+                  "  pm.expect(j.pagination).to.have.property(\"total\");",
+                  "  pm.expect(j.pagination).to.have.property(\"total_pages\");",
+                  "});",
+                  "pm.test(\"La respuesta no incluye password_hash\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(JSON.stringify(j)).to.not.include(\"password_hash\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Administrador municipal: login y cambio de contraseña",
+      "description": "Se prueba el cambio de contraseña con la cuenta del administrador creado, sin tocar la del superadministrador.",
+      "item": [
+        {
+          "name": "3.1 Login administrador (muni 7)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin7.{{run_id}}@nunoa.test\",\n  \"password\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Rol y municipalidad correctos\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.user.rol).to.equal(\"administrador_municipal\");",
+                  "  pm.expect(j.data.user.municipalidad_id).to.equal(7);",
+                  "});",
+                  "pm.test(\"Guarda admin_token\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.access_token).to.exist;",
+                  "  pm.collectionVariables.set(\"admin_token\", j.data.access_token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 GET /auth/me (administrador)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Perfil vigente\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.rol).to.equal(\"administrador_municipal\");",
+                  "  pm.expect(j.data.municipalidad_id).to.equal(7);",
+                  "});",
+                  "pm.test(\"La respuesta no incluye password_hash\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(JSON.stringify(j)).to.not.include(\"password_hash\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 Cambio con contraseña actual incorrecta -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"ClaveIncorrecta-12345\",\n  \"new_password\": \"{{admin_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: INVALID_CREDENTIALS\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"INVALID_CREDENTIALS\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.4 Nueva contraseña demasiado corta -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{admin_password}}\",\n  \"new_password\": \"corta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: VALIDATION_ERROR\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"VALIDATION_ERROR\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"details apunta a new_password\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.error.details.map(d => d.field)).to.include(\"new_password\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.5 Nueva contraseña igual a la actual -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{admin_password}}\",\n  \"new_password\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: VALIDATION_ERROR\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"VALIDATION_ERROR\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.6 Cambio de contraseña correcto -> 200",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{admin_password}}\",\n  \"new_password\": \"{{admin_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Mensaje de confirmación\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.message).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.7 Login con la contraseña anterior -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin7.{{run_id}}@nunoa.test\",\n  \"password\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: INVALID_CREDENTIALS\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"INVALID_CREDENTIALS\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.8 Login con la contraseña nueva -> 200",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin7.{{run_id}}@nunoa.test\",\n  \"password\": \"{{admin_new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Renueva admin_token\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.access_token).to.exist;",
+                  "  pm.collectionVariables.set(\"admin_token\", j.data.access_token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Ámbito del administrador municipal (muni 7)",
+      "description": "Solo gestiona inspectores de su municipalidad: 403 si intenta elevar privilegios o salir de ámbito, 404 si el recurso es de otra municipalidad.",
+      "item": [
+        {
+          "name": "4.1 Crear inspector propio (sin municipalidad_id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Camila Pizarro\",\n  \"email\": \"insp7.{{run_id}}@nunoa.test\",\n  \"password\": \"{{inspector_password}}\",\n  \"rol\": \"inspector\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "});",
+                  "pm.test(\"Hereda la municipalidad del administrador\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.rol).to.equal(\"inspector\");",
+                  "  pm.expect(j.data.municipalidad_id).to.equal(7);",
+                  "});",
+                  "pm.test(\"La respuesta no incluye password_hash\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(JSON.stringify(j)).to.not.include(\"password_hash\");",
+                  "});",
+                  "pm.test(\"Guarda insp7_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.id).to.exist;",
+                  "  pm.collectionVariables.set(\"insp7_id\", j.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 Crear inspector en otra municipalidad -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Fuera de ámbito\",\n  \"email\": \"fuera9.{{run_id}}@providencia.test\",\n  \"password\": \"{{inspector_password}}\",\n  \"rol\": \"inspector\",\n  \"municipalidad_id\": 9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.3 Crear administrador_municipal -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Escalada\",\n  \"email\": \"escala.{{run_id}}@nunoa.test\",\n  \"password\": \"{{admin_password}}\",\n  \"rol\": \"administrador_municipal\",\n  \"municipalidad_id\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.4 Crear superadministrador -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Escalada Root\",\n  \"email\": \"escalaroot.{{run_id}}@nunoa.test\",\n  \"password\": \"{{admin_password}}\",\n  \"rol\": \"superadministrador\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.5 Listar: solo su municipalidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Todos los usuarios son de la municipalidad 7 y ninguno es superadmin\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.length).to.be.above(0);",
+                  "  pm.expect(j.data.every(u => u.municipalidad_id === 7)).to.be.true;",
+                  "  pm.expect(j.data.some(u => u.rol === \"superadministrador\")).to.be.false;",
+                  "});",
+                  "pm.test(\"La respuesta no incluye password_hash\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(JSON.stringify(j)).to.not.include(\"password_hash\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.6 Listar filtrando otra municipalidad -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?municipalidad_id=9",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "9"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.7 Detalle de inspector de otra municipalidad -> 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp9_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp9_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(404);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: NOT_FOUND\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"NOT_FOUND\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.8 Detalle del superadministrador -> 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{superadmin_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{superadmin_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(404);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: NOT_FOUND\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"NOT_FOUND\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.9 Detalle de su inspector -> 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp7_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp7_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Es el inspector creado\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.id).to.equal(Number(pm.collectionVariables.get(\"insp7_id\")));",
+                  "  pm.expect(j.data.municipalidad_id).to.equal(7);",
+                  "});",
+                  "pm.test(\"La respuesta no incluye password_hash\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(JSON.stringify(j)).to.not.include(\"password_hash\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.10 Actualizar nombre de su inspector -> 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp7_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp7_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Camila Pizarro Soto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Nombre actualizado\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.nombre).to.equal(\"Camila Pizarro Soto\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.11 Elevar inspector a administrador -> 403",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp7_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp7_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rol\": \"administrador_municipal\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.12 Mover inspector a otra municipalidad -> 403",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp7_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp7_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"municipalidad_id\": 9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.13 Editar su propia cuenta de administrador -> 403",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{admin_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{admin_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Otro nombre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.14 Editar administrador de otra municipalidad -> 404",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{admin9_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{admin9_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Otro nombre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(404);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: NOT_FOUND\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"NOT_FOUND\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.15 PUT con campo no permitido (password) -> 400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp7_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp7_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NoSePuedeCambiarAqui123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: VALIDATION_ERROR\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"VALIDATION_ERROR\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"details apunta a password\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.error.details.map(d => d.field)).to.include(\"password\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.16 ID inválido -> 400",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "abc"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: VALIDATION_ERROR\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"VALIDATION_ERROR\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"details apunta a id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.error.details.map(d => d.field)).to.include(\"id\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Inspector (sin permisos de gestión de usuarios)",
+      "description": "El rol inspector puede autenticarse pero no gestionar cuentas.",
+      "item": [
+        {
+          "name": "5.1 Login inspector",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"insp7.{{run_id}}@nunoa.test\",\n  \"password\": \"{{inspector_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Rol inspector\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.user.rol).to.equal(\"inspector\");",
+                  "});",
+                  "pm.test(\"Guarda inspector_token\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.access_token).to.exist;",
+                  "  pm.collectionVariables.set(\"inspector_token\", j.data.access_token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2 GET /auth/me (inspector)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{inspector_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Perfil de inspector\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.rol).to.equal(\"inspector\");",
+                  "  pm.expect(j.data.municipalidad_id).to.equal(7);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.3 Inspector lista usuarios -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{inspector_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.4 Inspector crea usuario -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{inspector_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Intruso\",\n  \"email\": \"intruso.{{run_id}}@nunoa.test\",\n  \"password\": \"{{inspector_password}}\",\n  \"rol\": \"inspector\",\n  \"municipalidad_id\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Desactivación lógica",
+      "description": "DELETE desactiva (activo = false) sin borrar; el token de una cuenta desactivada deja de funcionar aunque no haya expirado.",
+      "item": [
+        {
+          "name": "6.1 Administrador desactiva a su inspector -> 204",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp7_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp7_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(204);",
+                  "});",
+                  "pm.test(\"Sin cuerpo de respuesta\", () => {",
+                  "  pm.expect(pm.response.text()).to.equal(\"\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.2 Desactivar de nuevo -> 204 (idempotente)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp7_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp7_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.3 Desactivar inspector de otra municipalidad -> 404",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp9_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp9_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(404);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: NOT_FOUND\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"NOT_FOUND\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.4 Administrador intenta desactivarse -> 403",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{admin_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{admin_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(403);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: FORBIDDEN\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"FORBIDDEN\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.5 Token del inspector desactivado ya no sirve -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{inspector_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: AUTHENTICATION_REQUIRED\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"AUTHENTICATION_REQUIRED\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.6 Login del inspector desactivado -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"insp7.{{run_id}}@nunoa.test\",\n  \"password\": \"{{inspector_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: INVALID_CREDENTIALS\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"INVALID_CREDENTIALS\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.7 Superadmin ve la cuenta con activo=false",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{insp7_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{insp7_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test(\"Cuenta conservada y desactivada\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.data.activo).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Casos de borde",
+      "description": "Respuestas con el formato de error del contrato en situaciones inesperadas.",
+      "item": [
+        {
+          "name": "7.1 Token inválido -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer token.invalido.abc"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: AUTHENTICATION_REQUIRED\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"AUTHENTICATION_REQUIRED\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.2 Ruta inexistente -> 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/no-existe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "no-existe"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(404);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: NOT_FOUND\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"NOT_FOUND\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.3 JSON mal formado -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"x@x.cl\",",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(400);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: VALIDATION_ERROR\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"VALIDATION_ERROR\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.4 Crear usuario sin token -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sin token\",\n  \"email\": \"sintoken.{{run_id}}@nunoa.test\",\n  \"password\": \"{{inspector_password}}\",\n  \"rol\": \"inspector\",\n  \"municipalidad_id\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: AUTHENTICATION_REQUIRED\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"AUTHENTICATION_REQUIRED\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. (Opcional) Límite de intentos de login",
+      "description": "Usa un correo inexistente distinto en cada corrida, así que no bloquea cuentas reales. Contrato 4.1: 5 fallos por IP y cuenta en 15 minutos.",
+      "item": [
+        {
+          "name": "8.1 Intento fallido 1 de 5 -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"limite.{{run_id}}@nunoa.test\",\n  \"password\": \"ClaveIncorrecta-12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: INVALID_CREDENTIALS\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"INVALID_CREDENTIALS\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8.2 Intento fallido 2 de 5 -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"limite.{{run_id}}@nunoa.test\",\n  \"password\": \"ClaveIncorrecta-12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: INVALID_CREDENTIALS\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"INVALID_CREDENTIALS\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8.3 Intento fallido 3 de 5 -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"limite.{{run_id}}@nunoa.test\",\n  \"password\": \"ClaveIncorrecta-12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: INVALID_CREDENTIALS\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"INVALID_CREDENTIALS\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8.4 Intento fallido 4 de 5 -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"limite.{{run_id}}@nunoa.test\",\n  \"password\": \"ClaveIncorrecta-12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: INVALID_CREDENTIALS\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"INVALID_CREDENTIALS\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8.5 Intento fallido 5 de 5 -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"limite.{{run_id}}@nunoa.test\",\n  \"password\": \"ClaveIncorrecta-12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(401);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: INVALID_CREDENTIALS\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"INVALID_CREDENTIALS\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8.6 Sexto intento -> 429 con Retry-After",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"limite.{{run_id}}@nunoa.test\",\n  \"password\": \"ClaveIncorrecta-12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 429\", () => {",
+                  "  pm.expect(pm.response.code).to.equal(429);",
+                  "});",
+                  "pm.test(\"Error con formato del contrato: RATE_LIMIT_EXCEEDED\", () => {",
+                  "  const e = pm.response.json().error;",
+                  "  pm.expect(e.code).to.equal(\"RATE_LIMIT_EXCEEDED\");",
+                  "  pm.expect(e.message).to.be.a(\"string\");",
+                  "  pm.expect(e.details).to.be.an(\"array\");",
+                  "  pm.expect(e.request_id).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"Incluye el header Retry-After\", () => {",
+                  "  pm.expect(Number(pm.response.headers.get(\"Retry-After\"))).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "superadmin_email",
+      "value": "admin@bache0.cl"
+    },
+    {
+      "key": "superadmin_password",
+      "value": "PON_AQUI_LA_CONTRASENA_DEL_SEED"
+    },
+    {
+      "key": "admin_password",
+      "value": "ClaveInicial-Admin7-2026"
+    },
+    {
+      "key": "admin_new_password",
+      "value": "ClaveNueva-Admin7-2026"
+    },
+    {
+      "key": "inspector_password",
+      "value": "ClaveInspector-7-2026"
+    },
+    {
+      "key": "run_id",
+      "value": "1"
+    },
+    {
+      "key": "superadmin_token",
+      "value": ""
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "inspector_token",
+      "value": ""
+    },
+    {
+      "key": "superadmin_id",
+      "value": ""
+    },
+    {
+      "key": "admin_id",
+      "value": ""
+    },
+    {
+      "key": "admin9_id",
+      "value": ""
+    },
+    {
+      "key": "insp9_id",
+      "value": ""
+    },
+    {
+      "key": "insp7_id",
+      "value": ""
+    }
+  ]
+}
