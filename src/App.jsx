@@ -35,9 +35,12 @@ import {
 
 import {
   listReports,
+  getReportPhoto,
+  updateReportStatus,
 } from "./services/reportService";
 
 import {
+  adaptApiReport,
   mapApiReports,
 } from "./services/reportAdapter";
 
@@ -94,6 +97,17 @@ export default function App() {
   const [errorReportes, setErrorReportes] = useState("");
 
   const [reloadReportsKey, setReloadReportsKey] = useState(0);
+
+  // Fotografía privada del reporte seleccionado (Blob convertido a URL temporal).
+  const [fotoReporteUrl, setFotoReporteUrl] = useState(null);
+  const [cargandoFoto, setCargandoFoto] = useState(false);
+  const [errorFoto, setErrorFoto] = useState("");
+
+  // Estado que el funcionario desea guardar desde el detalle del reporte.
+  const [estadoEdicion, setEstadoEdicion] = useState("pendiente");
+  const [guardandoEstado, setGuardandoEstado] = useState(false);
+  const [errorEstado, setErrorEstado] = useState("");
+  const [estadoActualizado, setEstadoActualizado] = useState(false);
 
 
   // --------------------------------------------------
@@ -275,7 +289,72 @@ export default function App() {
 
 
   // --------------------------------------------------
-  // 7. MANTENER SEPARADO EL MÓDULO CIUDADANO
+  // 7. RECUPERAR LA FOTOGRAFÍA PRIVADA DEL REPORTE
+  // --------------------------------------------------
+
+  useEffect(() => {
+    const reportId = reporteSeleccionado?.apiId;
+
+    setFotoReporteUrl(null);
+    setErrorFoto("");
+
+    if (!reportId || !token || !reporteSeleccionado?.fotoUrl) {
+      setCargandoFoto(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let temporaryUrl = null;
+
+    async function loadReportPhoto() {
+      setCargandoFoto(true);
+
+      try {
+        const photoBlob = await getReportPhoto(token, reportId);
+
+        if (cancelled) return;
+
+        if (!photoBlob || !photoBlob.type?.startsWith("image/")) {
+          throw new Error("El servidor no devolvió una fotografía válida.");
+        }
+
+        temporaryUrl = URL.createObjectURL(photoBlob);
+        setFotoReporteUrl(temporaryUrl);
+      } catch (error) {
+        if (cancelled) return;
+
+        if (error.status === 401) {
+          clearAccessToken();
+          setToken(null);
+          setUsuario(null);
+          setAuthStatus("anonymous");
+          setReporteSeleccionado(null);
+          return;
+        }
+
+        setErrorFoto(
+          error.status === 404
+            ? "No se encontró una fotografía asociada a este reporte."
+            : error.status === 403
+              ? "No tienes permiso para consultar esta fotografía."
+              : error.message || "No se pudo recuperar la fotografía."
+        );
+      } finally {
+        if (!cancelled) setCargandoFoto(false);
+      }
+    }
+
+    loadReportPhoto();
+
+    return () => {
+      cancelled = true;
+      if (temporaryUrl) URL.revokeObjectURL(temporaryUrl);
+    };
+  }, [token, reporteSeleccionado?.apiId, reporteSeleccionado?.fotoUrl]);
+
+
+  // --------------------------------------------------
+  // 8. MANTENER SEPARADO EL MÓDULO CIUDADANO
   // --------------------------------------------------
 
   if (isCitizenRoute) {
@@ -284,7 +363,7 @@ export default function App() {
 
 
   // --------------------------------------------------
-  // 8. PANTALLA DE VERIFICACIÓN DE SESIÓN
+  // 9. PANTALLA DE VERIFICACIÓN DE SESIÓN
   // --------------------------------------------------
 
   if (authStatus === "checking") {
@@ -303,7 +382,7 @@ export default function App() {
 
 
   // --------------------------------------------------
-  // 9. PANTALLA DE LOGIN
+  // 10. PANTALLA DE LOGIN
   // --------------------------------------------------
 
   if (authStatus !== "authenticated" || !usuario) {
@@ -312,7 +391,7 @@ export default function App() {
 
 
   // --------------------------------------------------
-  // 10. INFORMACIÓN DEL FUNCIONARIO AUTENTICADO
+  // 11. INFORMACIÓN DEL FUNCIONARIO AUTENTICADO
   // --------------------------------------------------
 
   const esSuperadministrador =
@@ -343,16 +422,74 @@ export default function App() {
 
 
   // --------------------------------------------------
-  // 11. SELECCIÓN DE UN REPORTE
+  // 12. SELECCIÓN DE UN REPORTE
   // --------------------------------------------------
 
   const handleVerDetalle = (reporte) => {
     setReporteSeleccionado(reporte);
+    setEstadoEdicion(reporte.estadoApi || "pendiente");
+    setErrorEstado("");
+    setEstadoActualizado(false);
   };
 
 
+  async function handleUpdateReportStatus() {
+    if (!reporteSeleccionado?.apiId || !token || !estadoEdicion) return;
+
+    setGuardandoEstado(true);
+    setErrorEstado("");
+    setEstadoActualizado(false);
+
+    try {
+      const response = await updateReportStatus(
+        token,
+        reporteSeleccionado.apiId,
+        estadoEdicion
+      );
+
+      const rawUpdatedReport = response?.data ?? response;
+      const updatedReport = adaptApiReport(rawUpdatedReport);
+
+      if (!updatedReport) {
+        throw new Error("El servidor no devolvió el reporte actualizado.");
+      }
+
+      setReportes((currentReports) =>
+        currentReports.map((report) =>
+          report.apiId === updatedReport.apiId
+            ? { ...report, ...updatedReport }
+            : report
+        )
+      );
+
+      setReporteSeleccionado((current) =>
+        current?.apiId === updatedReport.apiId
+          ? { ...current, ...updatedReport }
+          : current
+      );
+
+      setEstadoEdicion(updatedReport.estadoApi || estadoEdicion);
+      setEstadoActualizado(true);
+    } catch (error) {
+      if (error.status === 401) {
+        clearAccessToken();
+        setToken(null);
+        setUsuario(null);
+        setReportes([]);
+        setReporteSeleccionado(null);
+        setAuthStatus("anonymous");
+        return;
+      }
+
+      setErrorEstado(error.message || "No se pudo actualizar el estado del reporte.");
+    } finally {
+      setGuardandoEstado(false);
+    }
+  }
+
+
   // --------------------------------------------------
-  // 12. ACTUALIZAR LISTADO
+  // 13. ACTUALIZAR LISTADO
   // --------------------------------------------------
 
   const handleRefreshReports = () => {
@@ -361,7 +498,7 @@ export default function App() {
 
 
   // --------------------------------------------------
-  // 13. DASHBOARD MUNICIPAL
+  // 14. DASHBOARD MUNICIPAL
   // --------------------------------------------------
 
   return (
@@ -1143,31 +1280,36 @@ export default function App() {
 
                   <div className="h-56 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 relative shadow-inner flex items-center justify-center">
 
-                    {reporteSeleccionado.imagenUrl ? (
+                    {cargandoFoto ? (
+
+                      <div className="text-center p-5">
+                        <Loader2 size={30} className="mx-auto text-blue-600 mb-2 animate-spin" />
+                        <p className="text-sm font-medium text-slate-600">
+                          Recuperando fotografía...
+                        </p>
+                      </div>
+
+                    ) : fotoReporteUrl ? (
 
                       <img
-                        src={reporteSeleccionado.imagenUrl}
-                        alt="Evidencia del reporte"
-                        className="w-full h-full object-cover"
+                        src={fotoReporteUrl}
+                        alt={`Fotografía del reporte ${reporteSeleccionado.id}`}
+                        className="w-full h-full object-contain bg-slate-900"
                       />
 
                     ) : (
 
                       <div className="text-center p-5">
-
                         <MapPin
                           size={32}
                           className="mx-auto text-slate-400 mb-2"
                         />
-
                         <p className="text-sm font-medium text-slate-600">
-                          Fotografía no disponible
+                          {errorFoto ? "No se pudo cargar la fotografía" : "Fotografía no disponible"}
                         </p>
-
-                        <p className="text-xs text-slate-400 mt-1">
-                          La recuperación de fotografías se conectará mediante el endpoint protegido del backend.
+                        <p className="text-xs text-slate-500 mt-1">
+                          {errorFoto || "Este reporte no tiene una fotografía recuperable."}
                         </p>
-
                       </div>
 
                     )}
@@ -1447,16 +1589,41 @@ export default function App() {
 
             <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 flex flex-wrap justify-between items-center gap-3">
 
-              <span className="text-xs text-slate-500 font-mono">
-
-                Estado actual:{" "}
-
-                <strong className="text-slate-800">
-                  {displayValue(reporteSeleccionado.estado)}
-                </strong>
-
-              </span>
-
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor="estado-reporte" className="text-xs text-slate-600 font-medium">
+                  Estado:
+                </label>
+                <select
+                  id="estado-reporte"
+                  value={estadoEdicion}
+                  onChange={(event) => {
+                    setEstadoEdicion(event.target.value);
+                    setEstadoActualizado(false);
+                    setErrorEstado("");
+                  }}
+                  disabled={guardandoEstado}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="pendiente">Pendiente</option>
+                  <option value="en_revision">En revisión</option>
+                  <option value="reparado">Reparado</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={handleUpdateReportStatus}
+                  disabled={guardandoEstado || estadoEdicion === reporteSeleccionado.estadoApi}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-700 hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 text-white text-sm font-medium px-4 py-2 transition-colors"
+                >
+                  {guardandoEstado && <Loader2 size={15} className="animate-spin" />}
+                  {guardandoEstado ? "Guardando..." : "Guardar estado"}
+                </button>
+                {estadoActualizado && (
+                  <span className="text-xs font-medium text-emerald-700">Estado guardado.</span>
+                )}
+                {errorEstado && (
+                  <span role="alert" className="w-full text-xs text-red-600">{errorEstado}</span>
+                )}
+              </div>
 
               <button
                 onClick={() => setReporteSeleccionado(null)}
