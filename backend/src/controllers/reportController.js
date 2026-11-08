@@ -36,62 +36,20 @@ async function obtenerReporte(req, res) {
  */
 async function crearReporte(req, res, next) {
   try {
-    const { lat, lng, gravedad, descripcion } = req.body || {};
-    const foto = req.file;
-
-    const latitud = Number(lat);
-    const longitud = Number(lng);
-
-    if (
-      lat === undefined ||
-      lng === undefined ||
-      !Number.isFinite(latitud) ||
-      !Number.isFinite(longitud) ||
-      latitud < -90 ||
-      latitud > 90 ||
-      longitud < -180 ||
-      longitud > 180 ||
-      !foto
-    ) {
-      return res.status(400).json({
-        error: 'Faltan datos obligatorios o las coordenadas son inválidas.'
-      });
-    }
-
-    const datosContrato = {
-      latitud,
-      longitud,
-      severidad: gravedad,
-      descripcion
-    };
-
-    const nuevoReporte = await reporteService.procesarNuevoReporte(
-      datosContrato,
-      foto
-    );
-
-    return res.status(201).json({
-      success: true,
-      mensaje: 'Reporte ingresado exitosamente',
-      folio: nuevoReporte.folio,
-      data: nuevoReporte
-    });
-
-  } catch (error) {
-    return next(error);
-  }
+    const data = await reporteService.procesarNuevoReporte(req.body || {}, req.file, req.requestId);
+    return res.status(201).json({ data });
+  } catch (error) { return next(error); }
 }
 
-/**
- * GET /api/v1/reportes/:id/foto
- * Pendiente de integración con el almacenamiento.
- */
+/** GET /api/v1/reportes/:id/foto: acceso restringido por ámbito municipal. */
 async function obtenerFoto(req, res) {
-  throw new AppError(
-    503,
-    'SERVICE_UNAVAILABLE',
-    'La recuperación de fotografías todavía no está integrada.'
-  );
+  const storage = require('../services/photoStorageService');
+  const metadata = await reportManagementService.getReportPhotoMetadata(req.params.id, req.user);
+  const bytes = await storage.readPhoto(metadata.storage_key);
+  res.set('Content-Type', metadata.mime_type);
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Content-Type-Options', 'nosniff');
+  return res.status(200).send(bytes);
 }
 
 /**

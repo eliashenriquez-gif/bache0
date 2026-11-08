@@ -6,6 +6,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const reportController = require('../controllers/reportController');
+const { citizenRateLimiter } = require('../middlewares/citizenRateLimiter');
 const { authenticate } = require('../middlewares/authenticate');
 const { authorize } = require('../middlewares/authorize');
 
@@ -24,8 +25,7 @@ const storage = multer.diskStorage({
   },
 
   filename: (req, file, cb) => {
-    const extension = path.extname(file.originalname);
-    const nombreUnico = `${crypto.randomUUID()}${extension}`;
+    const nombreUnico = crypto.randomUUID();
     cb(null, nombreUnico);
   }
 });
@@ -51,7 +51,14 @@ const canManageReports = authorize(
  */
 router.post(
   '/',
-  upload.single('foto'),
+  citizenRateLimiter(Number(process.env.REPORT_RATE_LIMIT_PER_10_MINUTES) || 5, 10 * 60 * 1000),
+  (req, res, next) => upload.single('foto')(req, res, (error) => {
+    if (error?.code === 'LIMIT_FILE_SIZE') {
+      const AppError = require('../middlewares/AppError');
+      return next(new AppError(413, 'FILE_TOO_LARGE', 'La fotografía supera los 10 MB.'));
+    }
+    return next(error);
+  }),
   reportController.crearReporte
 );
 
