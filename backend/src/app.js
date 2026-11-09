@@ -1,8 +1,7 @@
-
 const path = require('node:path');
 
 // Cargar las variables de entorno antes de importar rutas y middlewares.
-// El archivo .env está en la raíz del proyecto: D:\BACHE_0\bache0\.env
+// El archivo .env está en la raíz del proyecto.
 require('dotenv').config({
   path: path.resolve(__dirname, '../../.env'),
 });
@@ -13,6 +12,7 @@ const cors = require('cors');
 const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const ubicacionRoutes = require('./routes/ubicacionRoutes');
 
 const {
   errorHandler,
@@ -32,6 +32,7 @@ app.use(express.json());
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/reportes', reportRoutes);
 app.use('/api/v1/usuarios', userRoutes);
+app.use('/api/v1/ubicaciones', ubicacionRoutes);
 
 // Manejo de rutas y errores
 app.use(notFoundHandler);

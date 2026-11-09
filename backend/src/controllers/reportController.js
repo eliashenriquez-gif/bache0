@@ -1,82 +1,80 @@
-const reportService = require('../services/reportManagementService');
+
+const reporteService = require('../services/reportService');
+const reportManagementService = require('../services/reportManagementService');
 const AppError = require('../middlewares/AppError');
 
 /**
  * GET /api/v1/reportes
- * Lista reportes dentro del ámbito autorizado por el JWT.
+ * Lista reportes según los permisos del usuario autenticado.
  */
 async function obtenerReportes(req, res) {
-  const result = await reportService.listReports(
+  const result = await reportManagementService.listReports(
     req.query,
     req.user
   );
 
-  res.status(200).json(result);
+  return res.status(200).json(result);
 }
 
 /**
  * GET /api/v1/reportes/:id
  */
 async function obtenerReporte(req, res) {
-  const reporte = await reportService.getReportById(
+  const reporte = await reportManagementService.getReportById(
     req.params.id,
     req.user
   );
 
-  res.status(200).json({
+  return res.status(200).json({
     data: reporte
   });
 }
 
 /**
  * POST /api/v1/reportes
- * Pendiente de integración con el flujo ciudadano,
- * geocodificación y almacenamiento de fotografías.
+ * Recibe un reporte ciudadano con fotografía.
  */
-async function crearReporte(req, res) {
-  throw new AppError(
-    503,
-    'SERVICE_UNAVAILABLE',
-    'La creación de reportes ciudadanos todavía no está integrada.'
-  );
+async function crearReporte(req, res, next) {
+  try {
+    const data = await reporteService.procesarNuevoReporte(req.body || {}, req.file, req.requestId);
+    return res.status(201).json({ data });
+  } catch (error) { return next(error); }
 }
 
-/**
- * GET /api/v1/reportes/:id/foto
- * Pendiente de integración con StorageService.
- */
+/** GET /api/v1/reportes/:id/foto: acceso restringido por ámbito municipal. */
 async function obtenerFoto(req, res) {
-  throw new AppError(
-    503,
-    'SERVICE_UNAVAILABLE',
-    'La recuperación de fotografías todavía no está integrada.'
-  );
+  const storage = require('../services/photoStorageService');
+  const metadata = await reportManagementService.getReportPhotoMetadata(req.params.id, req.user);
+  const bytes = await storage.readPhoto(metadata.storage_key);
+  res.set('Content-Type', metadata.mime_type);
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Content-Type-Options', 'nosniff');
+  return res.status(200).send(bytes);
 }
 
 /**
  * PUT /api/v1/reportes/:id
- * Actualización administrativa.
  */
 async function actualizarReporte(req, res) {
-  const reporte = await reportService.updateReport(
+  const reporte = await reportManagementService.updateReport(
     req.params.id,
     req.body,
     req.user
   );
 
-  res.status(200).json({
+  return res.status(200).json({
     data: reporte
   });
 }
 
 /**
  * PATCH /api/v1/reportes/:id/estado
- * Inspector, administrador municipal o superadministrador.
  */
 async function actualizarEstado(req, res) {
   if (
     !req.body ||
-    typeof req.body.estado !== 'string'
+    typeof req.body.estado !== 'string' ||
+    !req.body.estado.trim()
   ) {
     throw new AppError(
       400,
@@ -89,28 +87,28 @@ async function actualizarEstado(req, res) {
     );
   }
 
-  const reporte = await reportService.updateReportStatus(
+  const reporte = await reportManagementService.updateReportStatus(
     req.params.id,
     req.body.estado,
     req.user
   );
 
-  res.status(200).json({
+  return res.status(200).json({
     data: reporte
   });
 }
 
 /**
  * DELETE /api/v1/reportes/:id
- * Archivo lógico, sin eliminación física.
+ * Archivado lógico.
  */
 async function archivarReporte(req, res) {
-  await reportService.archiveReport(
+  await reportManagementService.archiveReport(
     req.params.id,
     req.user
   );
 
-  res.status(204).send();
+  return res.status(204).send();
 }
 
 module.exports = {
