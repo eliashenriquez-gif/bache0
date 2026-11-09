@@ -13,6 +13,40 @@ const UPDATE_FIELDS = ['nombre', 'email', 'rol', 'municipalidad_id'];
 // Repositorio PostgreSQL compartido con la capa de persistencia.
 const userRepository = require('../repositories/userRepository');
 
+// auditRepository usa ES Modules; se carga de forma dinámica desde este servicio CommonJS.
+let auditRepositoryPromise;
+function getAuditRepository() {
+  if (!auditRepositoryPromise) {
+    auditRepositoryPromise = import('../repositories/auditRepository.js');
+  }
+  return auditRepositoryPromise;
+}
+
+function auditUserSnapshot(user) {
+  return {
+    id: user.id,
+    nombre: user.nombre,
+    email: user.email,
+    rol: user.rol,
+    municipalidad_id: user.municipalidad_id,
+    activo: user.activo,
+  };
+}
+
+async function registerUserAudit(client, actor, userId, accion, cambios) {
+  const { insertAuditEvent } = await getAuditRepository();
+  const isSystem = !actor;
+
+  await insertAuditEvent(client, {
+    actor_user_id: isSystem ? null : actor.id,
+    tipo_actor: isSystem ? 'sistema' : 'funcionario',
+    entidad: 'usuarios',
+    entidad_id: Number(userId),
+    accion,
+    cambios,
+  });
+}
+
 function validationError(details) {
   return new AppError(400, 'VALIDATION_ERROR', 'Hay campos que requieren corrección.', details);
 }
@@ -151,8 +185,8 @@ function isInScope(actor, user) {
   return user.municipalidad_id === actor.municipalidad_id;
 }
 
-async function findManagedUser(actor, id) {
-  const user = await userRepository.findById(id);
+async function findManagedUser(actor, id, client = null, forUpdate = false) {
+  const user = await userRepository.findById(id, client, { forUpdate });
 
   if (!user || !isInScope(actor, user)) {
     throw notFound();
@@ -201,15 +235,27 @@ function validateNewUser(input) {
   };
 }
 
-async function persistNewUser({ password, ...data }) {
+async function persistNewUser({ password, ...data }, actor = null) {
   const password_hash = await argon2.hash(password, {
     type: argon2.argon2id
   });
 
   try {
-    const created = await userRepository.insert({
-      ...data,
-      password_hash
+    const created = await userRepository.withTransaction(async (client) => {
+      const user = await userRepository.insert({
+        ...data,
+        password_hash
+      }, client);
+
+      await registerUserAudit(
+        client,
+        actor,
+        user.id,
+        'usuario.creado',
+        { after: auditUserSnapshot(user) }
+      );
+
+      return user;
     });
 
     return toPublicUser(created);
@@ -247,7 +293,7 @@ async function createUser(actor, body) {
     }
   }
 
-  return persistNewUser(validateNewUser(input));
+  return persistNewUser(validateNewUser(input), actor);
 }
 
 async function listUsers(actor, query) {
@@ -413,56 +459,78 @@ async function updateUser(actor, rawId, body) {
     throw validationError(details);
   }
 
-  const existing = await findManagedUser(actor, id);
-
-  if (actor.rol === 'administrador_municipal') {
-    assertAdminTargetIsInspector(actor, existing);
-
-    if ('rol' in changes && changes.rol !== 'inspector') {
-      throw forbidden(
-        'No puedes asignar ese rol.',
-        [{
-          field: 'rol',
-          issue: 'Un administrador municipal no puede elevar privilegios.'
-        }]
-      );
-    }
-
-    if (
-      'municipalidad_id' in changes &&
-      changes.municipalidad_id !== actor.municipalidad_id
-    ) {
-      throw forbidden(
-        'No puedes mover cuentas a otra municipalidad.',
-        [{
-          field: 'municipalidad_id',
-          issue: 'Debe coincidir con tu municipalidad.'
-        }]
-      );
-    }
-  }
-
-  const finalRol = changes.rol ?? existing.rol;
-
-  const finalMunicipalidad =
-    'municipalidad_id' in changes
-      ? changes.municipalidad_id
-      : existing.municipalidad_id;
-
-  const scopeDetails = [];
-
-  validateRoleScope(finalRol, finalMunicipalidad, scopeDetails);
-
-  if (scopeDetails.length > 0) {
-    throw validationError(scopeDetails);
-  }
-
   try {
-    const updated = await userRepository.update(id, changes);
+    const updated = await userRepository.withTransaction(async (client) => {
+      // Leer y bloquear el usuario dentro de la transacción para que el before/after
+      // corresponda exactamente a la modificación que estamos registrando.
+      const existing = await findManagedUser(actor, id, client, true);
 
-    if (!updated) {
-      throw notFound();
-    }
+      if (actor.rol === 'administrador_municipal') {
+        assertAdminTargetIsInspector(actor, existing);
+
+        if ('rol' in changes && changes.rol !== 'inspector') {
+          throw forbidden(
+            'No puedes asignar ese rol.',
+            [{
+              field: 'rol',
+              issue: 'Un administrador municipal no puede elevar privilegios.'
+            }]
+          );
+        }
+
+        if (
+          'municipalidad_id' in changes &&
+          changes.municipalidad_id !== actor.municipalidad_id
+        ) {
+          throw forbidden(
+            'No puedes mover cuentas a otra municipalidad.',
+            [{
+              field: 'municipalidad_id',
+              issue: 'Debe coincidir con tu municipalidad.'
+            }]
+          );
+        }
+      }
+
+      const finalRol = changes.rol ?? existing.rol;
+      const finalMunicipalidad =
+        'municipalidad_id' in changes
+          ? changes.municipalidad_id
+          : existing.municipalidad_id;
+
+      const scopeDetails = [];
+      validateRoleScope(finalRol, finalMunicipalidad, scopeDetails);
+      if (scopeDetails.length > 0) {
+        throw validationError(scopeDetails);
+      }
+
+      // Evitar escribir y auditar modificaciones que no cambian ningún valor.
+      const effectiveChanges = Object.fromEntries(
+        Object.entries(changes).filter(([key, value]) => value !== existing[key])
+      );
+      if (Object.keys(effectiveChanges).length === 0) {
+        return existing;
+      }
+
+      const result = await userRepository.update(id, effectiveChanges, client);
+      if (!result) {
+        throw notFound();
+      }
+
+      await registerUserAudit(
+        client,
+        actor,
+        id,
+        'usuario.actualizado',
+        {
+          before: auditUserSnapshot(existing),
+          after: auditUserSnapshot(result),
+          campos: Object.keys(effectiveChanges),
+        }
+      );
+
+      return result;
+    });
 
     return toPublicUser(updated);
   } catch (err) {
@@ -474,13 +542,31 @@ async function deactivateUser(actor, rawId) {
   assertCanManageUsers(actor);
 
   const id = parseId(rawId);
-  const user = await findManagedUser(actor, id);
 
-  assertAdminTargetIsInspector(actor, user);
+  await userRepository.withTransaction(async (client) => {
+    const user = await findManagedUser(actor, id, client, true);
+    assertAdminTargetIsInspector(actor, user);
 
-  if (user.activo) {
-    await userRepository.update(id, { activo: false });
-  }
+    if (!user.activo) {
+      return;
+    }
+
+    const updated = await userRepository.update(id, { activo: false }, client);
+    if (!updated) {
+      throw notFound();
+    }
+
+    await registerUserAudit(
+      client,
+      actor,
+      id,
+      'usuario.desactivado',
+      {
+        before: auditUserSnapshot(user),
+        after: auditUserSnapshot(updated),
+      }
+    );
+  });
 }
 
 let dummyHashPromise;
@@ -568,29 +654,43 @@ async function changePassword(userId, currentPassword, newPassword) {
     throw validationError(details);
   }
 
-  const record = await userRepository.findById(userId);
+  await userRepository.withTransaction(async (client) => {
+    const record = await userRepository.findById(userId, client);
 
-  if (!record || !record.activo) {
-    throw new AppError(
-      401,
-      'AUTHENTICATION_REQUIRED',
-      'Se requiere autenticación válida.'
+    if (!record || !record.activo) {
+      throw new AppError(
+        401,
+        'AUTHENTICATION_REQUIRED',
+        'Se requiere autenticación válida.'
+      );
+    }
+
+    if (!(await passwordMatches(record.password_hash, currentPassword))) {
+      throw new AppError(
+        401,
+        'INVALID_CREDENTIALS',
+        'La contraseña actual es incorrecta.'
+      );
+    }
+
+    const password_hash = await argon2.hash(newPassword, {
+      type: argon2.argon2id
+    });
+
+    const updated = await userRepository.update(userId, { password_hash }, client);
+    if (!updated) {
+      throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Se requiere autenticación válida.');
+    }
+
+    // Se registra que la contraseña cambió, sin guardar la contraseña ni su hash.
+    await registerUserAudit(
+      client,
+      { id: Number(userId) },
+      userId,
+      'usuario.password_actualizada',
+      { campos: ['password'] }
     );
-  }
-
-  if (!(await passwordMatches(record.password_hash, currentPassword))) {
-    throw new AppError(
-      401,
-      'INVALID_CREDENTIALS',
-      'La contraseña actual es incorrecta.'
-    );
-  }
-
-  const password_hash = await argon2.hash(newPassword, {
-    type: argon2.argon2id
   });
-
-  await userRepository.update(userId, { password_hash });
 }
 
 async function bootstrapSuperadmin({ nombre, email, password } = {}) {
