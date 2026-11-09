@@ -268,7 +268,7 @@ export default function ReporteBacheScreen() {
             <span style={styles.label}>2. Ubicación del bache (mueve el pin)</span>
             {cargandoGps && <p role="status">Obteniendo ubicación GPS...</p>}
             {errorGps && <p style={styles.aviso}>{errorGps}</p>}
-            <div style={{ height: 250, width: '100%', borderRadius: 6, overflow: 'hidden', border: '1px solid #ccc' }}>
+            <div style={{ height: 'clamp(340px, 48vh, 380px)', width: '100%', borderRadius: 6, overflow: 'hidden', border: '1px solid #ccc' }}>
               {
                 <MapContainer center={coords ? [coords.latitud, coords.longitud] : [-33.4489, -70.6693]} zoom={coords ? 16 : 11} style={{ height: '100%', width: '100%' }}>
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
