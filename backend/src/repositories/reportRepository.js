@@ -73,6 +73,9 @@ function auditSnapshot(row) {
     estado: row.estado,
     concurrencia_vial: row.concurrencia_vial,
     infraestructura_critica: row.infraestructura_critica,
+    prioridad: row.prioridad ?? null,
+    motivos: row.motivos ?? [],
+    version_reglas: row.version_reglas ?? null,
     archivado_at: row.archivado_at ?? null,
   };
 }
@@ -416,6 +419,79 @@ function validateUpdates(updates) {
   if (updates.descripcion != null && String(updates.descripcion).length > 2000) {
     throw new RepositoryValidationError('descripcion no puede superar los 2.000 caracteres.', 'descripcion');
   }
+}
+
+/**
+ * Persiste la prioridad calculada por el motor interno. No se expone al formulario ciudadano
+ * ni al endpoint genérico de actualización de reportes.
+ * `motivos` debe ser una lista de objetos para conservar la explicación estructurada.
+ */
+export async function updateReportPriority(pool, id, priorityInput, scope, actor = { tipo_actor: 'sistema', actor_user_id: null }) {
+  const reportId = positiveInteger(id, 'id');
+  if (!priorityInput || typeof priorityInput !== 'object' || Array.isArray(priorityInput)) {
+    throw new RepositoryValidationError('Los datos de prioridad son obligatorios.');
+  }
+  if (!['administrador_municipal', 'superadministrador'].includes(scope?.rol)) {
+    throw new RepositoryForbiddenError('Solo el motor autorizado puede calcular la prioridad dentro del ámbito municipal.');
+  }
+
+  const prioridad = String(priorityInput.prioridad ?? '').trim();
+  if (!prioridad || prioridad.length > 20) {
+    throw new RepositoryValidationError('prioridad debe contener entre 1 y 20 caracteres.', 'prioridad');
+  }
+  if (!Array.isArray(priorityInput.motivos) || priorityInput.motivos.some((item) => !item || typeof item !== 'object' || Array.isArray(item))) {
+    throw new RepositoryValidationError('motivos debe ser un arreglo de objetos JSON.', 'motivos');
+  }
+  const versionReglas = String(priorityInput.version_reglas ?? '').trim();
+  if (!versionReglas || versionReglas.length > 80) {
+    throw new RepositoryValidationError('version_reglas debe contener entre 1 y 80 caracteres.', 'version_reglas');
+  }
+  let motivosJson;
+  try {
+    motivosJson = JSON.stringify(priorityInput.motivos);
+  } catch {
+    throw new RepositoryValidationError('motivos debe ser serializable como JSON.', 'motivos');
+  }
+  const auditActor = normalizeAuditActor(actor);
+
+  return withTransaction(pool, async (client) => {
+    const selectValues = [reportId];
+    const selectScope = reportScopeClause(scope, selectValues);
+    const currentResult = await client.query(
+      `SELECT r.* FROM reportes r
+        WHERE r.id = $1 AND r.archivado_at IS NULL${selectScope}
+        FOR UPDATE`,
+      selectValues,
+    );
+    const before = currentResult.rows[0];
+    if (!before) return null;
+
+    const sameMotives = JSON.stringify(before.motivos ?? []) === motivosJson;
+    if (before.prioridad === prioridad && sameMotives && before.version_reglas === versionReglas) {
+      return mapPublicReport(before);
+    }
+
+    const updateValues = [reportId, prioridad, motivosJson, versionReglas];
+    const updateScope = reportScopeClause(scope, updateValues);
+    const updatedResult = await client.query(
+      `UPDATE reportes r
+          SET prioridad = $2, motivos = $3::jsonb, version_reglas = $4
+        WHERE r.id = $1 AND r.archivado_at IS NULL${updateScope}
+        RETURNING r.*`,
+      updateValues,
+    );
+    const after = updatedResult.rows[0];
+    if (!after) return null;
+
+    await insertAuditEvent(client, {
+      ...auditActor,
+      entidad: 'reportes',
+      entidad_id: reportId,
+      accion: 'reporte.prioridad_calculada',
+      cambios: { before: auditSnapshot(before), after: auditSnapshot(after) },
+    });
+    return mapPublicReport(after);
+  });
 }
 
 /** Archivo lógico: nunca ejecuta DELETE físico sobre reportes. Solo administrador municipal/superadmin. */

@@ -92,6 +92,9 @@ CREATE TABLE reportes (
 
     severidad                       VARCHAR(12) NOT NULL,
     estado                          VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+    prioridad                       VARCHAR(20) NULL,
+    motivos                         JSONB NOT NULL DEFAULT '[]'::JSONB,
+    version_reglas                  VARCHAR(80) NULL,
     concurrencia_vial               VARCHAR(12) NOT NULL,
     infraestructura_critica         VARCHAR(24) NOT NULL,
     descripcion                     VARCHAR(2000) NULL,
@@ -136,6 +139,9 @@ CREATE TABLE reportes (
     ),
     CONSTRAINT ck_reportes_severidad CHECK (severidad IN ('baja', 'media', 'alta')),
     CONSTRAINT ck_reportes_estado CHECK (estado IN ('pendiente', 'en_revision', 'reparado')),
+    CONSTRAINT ck_reportes_prioridad_no_vacia CHECK (prioridad IS NULL OR length(btrim(prioridad)) BETWEEN 1 AND 20),
+    CONSTRAINT ck_reportes_motivos_array CHECK (jsonb_typeof(motivos) = 'array'),
+    CONSTRAINT ck_reportes_version_reglas_no_vacia CHECK (version_reglas IS NULL OR length(btrim(version_reglas)) BETWEEN 1 AND 80),
     CONSTRAINT ck_reportes_concurrencia CHECK (concurrencia_vial IN ('baja', 'media', 'alta', 'muy_alta')),
     CONSTRAINT ck_reportes_infraestructura CHECK (
         infraestructura_critica IN ('ninguna', 'colegio', 'centro_salud', 'estacion_terminal', 'otra')
@@ -163,6 +169,9 @@ CREATE INDEX idx_reportes_coordenadas
     ON reportes (latitud, longitud);
 CREATE INDEX idx_reportes_geocodificacion
     ON reportes (estado_geocodificacion, comuna_detectada, region_detectada);
+CREATE INDEX idx_reportes_municipalidad_prioridad_fecha
+    ON reportes (municipalidad_id, prioridad, created_at DESC)
+    WHERE archivado_at IS NULL AND prioridad IS NOT NULL;
 
 CREATE TABLE analisis_vision (
     id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
