@@ -101,9 +101,13 @@ export async function getReportPhoto(token, id) {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
-    throw new Error(
+    const error = new Error(
       payload?.error?.message || `No se pudo obtener la fotografía (HTTP ${response.status}).`
     );
+    error.status = response.status;
+    error.code = payload?.error?.code;
+    error.details = payload?.error?.details;
+    throw error;
   }
 
   return response.blob();

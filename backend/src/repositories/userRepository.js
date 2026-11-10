@@ -15,6 +15,37 @@ async function getPool() {
   return cachedPool;
 }
 
+
+/**
+ * Ejecuta operaciones relacionadas en una única transacción PostgreSQL.
+ * Se utiliza para que la mutación de usuarios y su evento de auditoría
+ * se confirmen o reviertan juntos.
+ */
+async function withTransaction(callback) {
+  if (typeof callback !== 'function') {
+    throw new TypeError('callback debe ser una función.');
+  }
+
+  const pool = await getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // Se conserva el error original para facilitar el diagnóstico.
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 const SELECT_COLUMNS = `
   id,
   municipalidad_id,
@@ -40,8 +71,8 @@ const UPDATE_COLUMNS = Object.freeze({
  * Inserta un usuario.
  * La contraseña debe llegar ya cifrada con Argon2id desde userService.
  */
-async function insert(data) {
-  const pool = await getPool();
+async function insert(data, client = null) {
+  const pool = client || await getPool();
 
   const result = await pool.query(
     `INSERT INTO usuarios (
@@ -68,13 +99,14 @@ async function insert(data) {
 /**
  * Busca un usuario por ID.
  */
-async function findById(id) {
-  const pool = await getPool();
+async function findById(id, client = null, { forUpdate = false } = {}) {
+  const pool = client || await getPool();
+  const lockClause = forUpdate ? ' FOR UPDATE' : '';
 
   const result = await pool.query(
     `SELECT ${SELECT_COLUMNS}
        FROM usuarios
-      WHERE id = $1`,
+      WHERE id = $1${lockClause}`,
     [id],
   );
 
@@ -174,8 +206,8 @@ async function findAll({
  * Actualiza únicamente las columnas permitidas.
  * También mantiene la consistencia entre activo y desactivado_at.
  */
-async function update(id, changes) {
-  const pool = await getPool();
+async function update(id, changes, client = null) {
+  const pool = client || await getPool();
 
   if (!changes || typeof changes !== 'object' || Array.isArray(changes)) {
     throw new TypeError('changes debe ser un objeto.');
@@ -224,6 +256,7 @@ async function update(id, changes) {
 }
 
 module.exports = {
+  withTransaction,
   insert,
   findById,
   findByEmail,

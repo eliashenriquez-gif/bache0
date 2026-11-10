@@ -1948,6 +1948,9 @@ components:
       - estado_asignacion
       - severidad
       - estado
+      - prioridad
+      - motivos
+      - version_reglas
       - concurrencia_vial
       - infraestructura_critica
       - foto_url
@@ -2020,6 +2023,27 @@ components:
           $ref: '#/components/schemas/Severity'
         estado:
           $ref: '#/components/schemas/ReportStatus'
+        prioridad:
+          type:
+          - string
+          - 'null'
+          maxLength: 20
+          readOnly: true
+          description: Resultado del motor de prioridad. Es null hasta que exista un cálculo real.
+        motivos:
+          type: array
+          readOnly: true
+          description: Lista JSON estructurada de razones/evidencias que explican la prioridad calculada. Nunca contiene respuestas simuladas.
+          items:
+            type: object
+            additionalProperties: true
+        version_reglas:
+          type:
+          - string
+          - 'null'
+          maxLength: 80
+          readOnly: true
+          description: Versión identificable del conjunto de reglas que calculó la prioridad; null si todavía no existe cálculo.
         concurrencia_vial:
           $ref: '#/components/schemas/TrafficLevel'
         infraestructura_critica:
@@ -2437,6 +2461,7 @@ components:
               maximum: 1
     VisionAnalysis:
       type: object
+      description: Registro persistente de una ejecución real de análisis de visión. No se deben presentar valores simulados como resultados.
       required:
       - id
       - reporte_id

@@ -7,6 +7,7 @@ import {
   getReportPhotoMetadata,
   listReports,
   updateReport,
+  updateReportPriority,
 } from '../../src/repositories/reportRepository.js';
 import {
   MunicipalityCoverageError,
@@ -41,6 +42,9 @@ function reportRow(overrides = {}) {
     clasificacion_vial_verificada_at: null,
     severidad: 'alta',
     estado: 'pendiente',
+    prioridad: null,
+    motivos: [],
+    version_reglas: null,
     concurrencia_vial: 'muy_alta',
     infraestructura_critica: 'centro_salud',
     descripcion: 'Reporte ficticio de prueba',
@@ -77,7 +81,9 @@ function createFakeClient({ report = reportRow(), covered = true, selectRows = n
         return { rows: selectRows ?? [report], rowCount: (selectRows ?? [report]).length };
       }
       if (normalized.startsWith('UPDATE reportes r')) {
-        const updated = { ...report, estado: params.includes('en_revision') ? 'en_revision' : report.estado, updated_at: new Date('2026-10-20T12:01:00.000Z') };
+        const updated = normalized.includes('SET prioridad = $2')
+          ? { ...report, prioridad: params[1], motivos: JSON.parse(params[2]), version_reglas: params[3], updated_at: new Date('2026-10-20T12:01:00.000Z') }
+          : { ...report, estado: params.includes('en_revision') ? 'en_revision' : report.estado, updated_at: new Date('2026-10-20T12:01:00.000Z') };
         return { rows: [updated], rowCount: 1 };
       }
       if (normalized.startsWith('INSERT INTO auditoria_eventos')) {
@@ -158,6 +164,9 @@ test('createReport inserta el reporte y la auditoría en una transacción', asyn
   const fake = createFakePool();
   const result = await createReport(fake.pool, createInput());
   assert.equal(result.id, 42);
+  assert.equal(result.prioridad, null);
+  assert.deepEqual(result.motivos, []);
+  assert.equal(result.version_reglas, null);
   assert.equal(result.foto_url, '/api/v1/reportes/42/foto');
   assert.equal('foto_storage_key' in result, false, 'no debe exponer la ruta interna de almacenamiento');
   assert.equal(fake.calls[0].sql, 'BEGIN');
@@ -228,6 +237,44 @@ test('un inspector solo puede actualizar el estado, no la severidad', async () =
   const fake = createFakePool();
   await assert.rejects(
     updateReport(fake.pool, 42, { severidad: 'baja' }, { rol: 'inspector', municipalidad_id: 7 }, { tipo_actor: 'funcionario', actor_user_id: 10 }),
+    RepositoryForbiddenError,
+  );
+  assert.equal(fake.calls.length, 0);
+});
+
+test('updateReportPriority persiste prioridad, motivos y versión de reglas con auditoría', async () => {
+  const fake = createFakePool();
+  const result = await updateReportPriority(
+    fake.pool,
+    42,
+    {
+      prioridad: 'alta',
+      motivos: [{ codigo: 'infraestructura_critica', descripcion: 'Cercanía a un centro de salud' }],
+      version_reglas: 'motor-prioridad-v1',
+    },
+    { rol: 'administrador_municipal', municipalidad_id: 7 },
+  );
+  assert.equal(result.prioridad, 'alta');
+  assert.equal(result.version_reglas, 'motor-prioridad-v1');
+  assert.equal(result.motivos[0].codigo, 'infraestructura_critica');
+  assert.ok(fake.calls.some((call) => call.sql.startsWith('UPDATE reportes r SET prioridad = $2')));
+  assert.ok(fake.calls.some((call) => call.sql.startsWith('INSERT INTO auditoria_eventos')));
+  assert.equal(fake.calls.at(-1).sql, 'COMMIT');
+});
+
+test('updateReportPriority rechaza motivos que no sean un arreglo de objetos', async () => {
+  const fake = createFakePool();
+  await assert.rejects(
+    updateReportPriority(fake.pool, 42, { prioridad: 'alta', motivos: 'sin explicación', version_reglas: 'v1' }, { rol: 'superadministrador' }),
+    RepositoryValidationError,
+  );
+  assert.equal(fake.calls.length, 0);
+});
+
+test('updateReportPriority no permite que inspectores alteren la prioridad', async () => {
+  const fake = createFakePool();
+  await assert.rejects(
+    updateReportPriority(fake.pool, 42, { prioridad: 'alta', motivos: [], version_reglas: 'v1' }, { rol: 'inspector', municipalidad_id: 7 }),
     RepositoryForbiddenError,
   );
   assert.equal(fake.calls.length, 0);

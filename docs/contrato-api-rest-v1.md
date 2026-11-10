@@ -37,6 +37,7 @@
 14. Reportes y usuarios se archivan/desactivan lógicamente; no se borran físicamente a través del CRUD normal.
 15. Las entidades modificables tienen `created_at` y `updated_at`. PostgreSQL actualiza `updated_at` mediante trigger. Además, las mutaciones relevantes crean eventos de auditoría independientes que no se sobrescriben.
 16. La visión artificial se integra después mediante `VisionService`, prevista para Hito 3. Ni el proveedor ni el modelo quedan fijados en este contrato, y la IA no decide por sí sola la severidad o prioridad final.
+17. La prioridad calculada se expone en los reportes como `prioridad`, `motivos` y `version_reglas`. Los tres campos son de solo lectura para el cliente: los escribe exclusivamente el motor interno autorizado. Antes de un cálculo real, `prioridad` y `version_reglas` son `null`, y `motivos` es un arreglo vacío. Nunca se rellenan con resultados ficticios.
 
 ## 3. Arquitectura y responsabilidades de las capas
 
@@ -270,13 +271,15 @@ No se responde `200` ante errores. Se mantienen consistentes los códigos HTTP y
 
 ## 9. Reglas de los datos y PostgreSQL
 
+Para bases existentes, aplicar `db/migrations/20261109_001_reportes_prioridad_motivos_version_reglas.sql` después del esquema inicial. Para bases nuevas, los mismos campos ya forman parte de `db/schema.sql`. La migración es idempotente y no calcula prioridades ni modifica los reportes históricos, que quedan inicialmente con `prioridad = null`, `motivos = []` y `version_reglas = null`.
+
 ### 9.1 Tablas objetivo
 
 | Tabla | Propósito y reglas |
 |---|---|
 | `municipalidades` | Catálogo de entidades/comunas cubiertas. Incluye nombre, comuna, región, `activa`, `servicio_activo`, `created_at`, `updated_at`. La combinación normalizada comuna+región no se duplica. |
 | `usuarios` | Solo funcionarios y superadministradores. Incluye nombre, email normalizado único, `password_hash`, rol, `municipalidad_id`, `activo`, fechas. `municipalidad_id` no nulo para roles municipales y nulo solo para superadmin. |
-| `reportes` | Folio, coordenadas, precisión, método de ubicación, confirmación, metadatos geográficos, `municipalidad_id`, severidad, estado, concurrencia, infraestructura crítica, descripción, referencia/metadata de foto, fechas y `archivado_at`. No existe `usuario_id` ciudadano. |
+| `reportes` | Folio, coordenadas, precisión, método de ubicación, confirmación, metadatos geográficos, `municipalidad_id`, severidad, estado, `prioridad`, `motivos` (JSONB, arreglo de razones estructuradas), `version_reglas`, concurrencia, infraestructura crítica, descripción, referencia/metadata de foto, fechas y `archivado_at`. No existe `usuario_id` ciudadano. |
 | `analisis_vision` | Una fila por ejecución de análisis futura, relacionada con reporte; conserva proveedor, modelo/versión, estado, detecciones JSONB/error y fechas. |
 | `auditoria_eventos` | Registro append-only de actor, tipo de actor (`funcionario`, `invitado` o `sistema`), entidad, ID, acción, cambios autorizados antes/después y `created_at`. No se actualiza ni se borra por la API normal. |
 
@@ -287,8 +290,9 @@ No se responde `200` ante errores. Se mantienen consistentes los códigos HTTP y
 - La cuenta pública del ciudadano no se persiste: para reportes invitados no se guarda un usuario creador.
 - Emails normalizados en minúscula y únicos; hash obligatorio para usuarios municipales; rol limitado a `inspector`, `administrador_municipal`, `superadministrador`.
 - Coordenadas dentro de latitud `[-90,90]` y longitud `[-180,180]`; severidad `baja / media / alta`; estado `pendiente / en_revision / reparado`; concurrencia `baja / media / alta / muy_alta`; infraestructura `ninguna / colegio / centro_salud / estacion_terminal / otra`.
+- `prioridad` es un texto nullable de hasta 20 caracteres cuyo vocabulario definitivo debe coincidir con las reglas documentadas del motor; `motivos` es un arreglo JSONB de objetos explicativos; `version_reglas` identifica la versión de reglas aplicada. Los tres campos se guardan juntos por el servicio interno de prioridad y no se aceptan desde `POST /reportes` ni desde la actualización general del cliente.
 - Foto: referencia única por reporte en H2, tipo MIME permitido, tamaño en bytes y nombre interno aleatorio.
-- Índices recomendados: email único normalizado; reportes por `(municipalidad_id, estado, created_at)`; reportes por `created_at`; auditoría por `(entidad, entidad_id, created_at)`; análisis por `(reporte_id, created_at)`.
+- Índices recomendados: email único normalizado; reportes por `(municipalidad_id, estado, created_at)`; reportes por `(municipalidad_id, prioridad, created_at)` para filas no archivadas y con prioridad calculada; reportes por `created_at`; auditoría por `(entidad, entidad_id, created_at)`; análisis por `(reporte_id, created_at)`.
 - `ON DELETE CASCADE` no se utilizará para eliminar historial de reportes. Las relaciones se preservan con archivo/desactivación lógica.
 
 ### 9.3 Fechas y auditoría
@@ -314,7 +318,9 @@ No se responde `200` ante errores. Se mantienen consistentes los códigos HTTP y
 
 ## 11. Visión artificial (Hito 3)
 
-El backend invocará un `VisionService` desacoplado del proveedor. La solicitud `POST /reportes/{id}/analisis-vision` devuelve `202 Accepted` con el ID y estado `pendiente`; la consulta recupera `pendiente`, `procesando`, `completado` o `fallido`, proveedor, modelo, versión, detecciones, `analizado_at` y código de error controlado.
+El backend invocará un `VisionService` desacoplado del proveedor. La solicitud `POST /reportes/{id}/analisis-vision` devuelve `202 Accepted` con el ID y estado `pendiente`; la consulta recupera `pendiente`, `procesando`, `completado` o `fallido`, proveedor, modelo, versión, detecciones, `analizado_at` y código de error controlado. El repositorio `visionAnalysisRepository` proporciona persistencia transaccional y consultas por análisis/reporte, siempre verificando el ámbito municipal del reporte asociado y registrando el evento de auditoría.
+
+El resultado de visión y la prioridad son conceptos distintos. La prioridad se persiste en `reportes.prioridad`, sus razones estructuradas en `reportes.motivos` (JSONB) y la versión del motor en `reportes.version_reglas`. Estos campos permanecen sin evaluar hasta que el motor de prioridad real los calcule; no se deben rellenar con valores de demostración ni derivar automáticamente una prioridad solo a partir de la respuesta de visión.
 
 Una detección puede incluir etiqueta, confianza entre 0 y 1 y caja delimitadora normalizada. No representa automáticamente profundidad, severidad normativa ni prioridad de reparación. El modelo y proveedor se seleccionan después de pruebas comparativas y revisión de licencias, costo, límites, tratamiento de fotos y rendimiento. El ciudadano no espera la inferencia para enviar el reporte.
 

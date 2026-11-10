@@ -9,6 +9,7 @@ const projectRoot = path.resolve(testDir, '../../..');
 const schema = fs.readFileSync(path.join(projectRoot, 'db', 'schema.sql'), 'utf8');
 const seed = fs.readFileSync(path.join(projectRoot, 'db', 'seed.sql'), 'utf8');
 const contract = fs.readFileSync(path.join(projectRoot, 'docs', 'contrato-api-rest-v1.md'), 'utf8');
+const openapi = fs.readFileSync(path.join(projectRoot, 'docs', 'openapi.yaml'), 'utf8');
 
 test('schema incluye las cinco tablas canónicas del contrato', () => {
   for (const table of ['municipalidades', 'usuarios', 'reportes', 'analisis_vision', 'auditoria_eventos']) {
@@ -41,4 +42,24 @@ test('las reglas de tamaño de imagen, MIME y coordenadas se imponen en SQL', ()
   assert.match(schema, /image\/jpeg', 'image\/png', 'image\/webp/);
   assert.match(schema, /latitud BETWEEN -90 AND 90/);
   assert.match(schema, /longitud BETWEEN -180 AND 180/);
+});
+
+test('reportes conserva los campos explicables de prioridad', () => {
+  assert.match(schema, /prioridad\s+VARCHAR\(20\) NULL/i);
+  assert.match(schema, /motivos\s+JSONB NOT NULL DEFAULT '\[\]'::JSONB/i);
+  assert.match(schema, /version_reglas\s+VARCHAR\(80\) NULL/i);
+  assert.match(schema, /ck_reportes_motivos_array/i);
+  assert.match(contract, /version_reglas/);
+  assert.match(openapi, /prioridad:[\s\S]{0,220}readOnly: true/);
+  assert.match(openapi, /motivos:[\s\S]{0,220}readOnly: true/);
+  assert.match(openapi, /version_reglas:[\s\S]{0,220}readOnly: true/);
+});
+
+test('la migración de prioridad existe y es idempotente', () => {
+  const migrationPath = path.join(projectRoot, 'db', 'migrations', '20261109_001_reportes_prioridad_motivos_version_reglas.sql');
+  const migration = fs.readFileSync(migrationPath, 'utf8');
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS prioridad/i);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS motivos/i);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS version_reglas/i);
+  assert.match(migration, /CREATE INDEX IF NOT EXISTS idx_reportes_municipalidad_prioridad_fecha/i);
 });

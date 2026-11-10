@@ -1,80 +1,41 @@
-'use strict';
-
-const visionService = require('./visionService');
-
-// ───────── SIMULADO: reemplazar por los repositorios reales de Elías ─────────
-const reportRepository = {
-  async create(datos) {
-    const id = Date.now();
-    return { id, folio: `B0-${id}`, estado: 'pendiente', ...datos };
-  },
-};
-
-const analisisVisionRepository = {
-  async create(datos) {
-    console.log('[SIMULADO] INSERT analisis_vision:', JSON.stringify(datos));
-    return { id: Date.now(), ...datos };
-  },
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Proceso secundario: analiza la foto y registra el resultado.
- * Está aislado para que nada de lo que ocurra aquí afecte al reporte ya guardado.
- */
-async function ejecutarAnalisisVision(reporte, rutaFoto) {
+const fs = require('node:fs/promises');
+const AppError = require('../middlewares/AppError');
+const { resolverUbicacion } = require('./locationService');
+const management = require('./reportManagementService');
+const storage = require('./photoStorageService');
+function invalid(message) { throw new AppError(400, 'VALIDATION_ERROR', message); }
+async function procesarNuevoReporte(datos, foto, requestId) {
+  let key;
   try {
-    const analisis = await visionService.analyzeImage(rutaFoto);
-
-    if (!analisis) {
-      await analisisVisionRepository.create({
-        reporte_id: reporte.id,
-        estado: 'fallido',
-        error_code: 'VISION_NO_DISPONIBLE',
-        detecciones: [],
-      });
-      return;
-    }
-
-    await analisisVisionRepository.create({
-      reporte_id: reporte.id,
-      proveedor: analisis.proveedor,
-      modelo: analisis.modelo,
-      version_modelo: null,
-      estado: 'completado',
-      detecciones: [
-        {
-          etiqueta: analisis.tipo_desperfecto,
-          confianza: analisis.confianza,
-          caja: null,
-          severidad_sugerida: analisis.severidad_sugerida,
-        },
-      ],
-      error_code: null,
-      analizado_at: new Date().toISOString(),
-    });
+    if (!foto) invalid('La fotografía es obligatoria.');
+    if (!datos || datos.latitud === '' || datos.longitud === '' || datos.latitud == null || datos.longitud == null) invalid('Faltan coordenadas.');
+    if (datos.ubicacion_confirmada !== 'true' && datos.ubicacion_confirmada !== true) invalid('Debes confirmar la ubicación.');
+    if (!['gps','pin_manual'].includes(datos.metodo_ubicacion)) invalid('Método de ubicación inválido.');
+    if (!['baja','media','alta'].includes(datos.severidad)) invalid('Severidad inválida.');
+    if (!['baja','media','alta','muy_alta'].includes(datos.concurrencia_vial)) invalid('Concurrencia vial inválida.');
+    if (!['ninguna','colegio','centro_salud','estacion_terminal','otra'].includes(datos.infraestructura_critica)) invalid('Infraestructura crítica inválida.');
+    if (String(datos.descripcion || '').length > 2000) invalid('La descripción supera los 2000 caracteres.');
+    const latitud = Number(datos.latitud), longitud = Number(datos.longitud);
+    const precision = datos.precision_ubicacion_m == null || datos.precision_ubicacion_m === '' ? null : Number(datos.precision_ubicacion_m);
+    const location = await resolverUbicacion(latitud, longitud, datos.metodo_ubicacion, precision);
+    const photo = await storage.savePhoto(foto); key = photo.foto_storage_key;
+    const created = await management.createReport({
+      latitud, longitud, precision_ubicacion_m: precision, metodo_ubicacion: datos.metodo_ubicacion,
+      ubicacion_confirmada: true, municipalidad_id: location.municipalidad.id,
+      direccion_detectada: location.direccion_detectada, calle_detectada: location.calle_detectada,
+      comuna_detectada: location.comuna_detectada, region_detectada: location.region_detectada,
+      estado_geocodificacion: location.estado_resolucion, geocodificacion_proveedor: 'nominatim',
+      clasificacion_vial: null, clasificacion_vial_estado: 'pendiente',
+      severidad: datos.severidad, concurrencia_vial: datos.concurrencia_vial,
+      infraestructura_critica: datos.infraestructura_critica, descripcion: datos.descripcion || null,
+      ...photo,
+    }, requestId);
+    return created;
   } catch (error) {
-    console.error(`[ReportService] Falló el análisis del reporte ${reporte.id}: ${error.message}`);
+    if (key) await storage.deletePhoto(key).catch(() => {});
+    throw error;
+  } finally {
+    if (foto?.path) await fs.rm(foto.path, { force: true }).catch(() => {});
   }
 }
-
-/**
- * Crea un reporte ciudadano.
- * @param {object} datosCiudadano Campos validados del formulario.
- * @param {{path: string}} fileData Foto YA GUARDADA de forma persistente
- *        (no el temporal de Multer, que se borra al terminar la solicitud).
- */
-async function crearReporte(datosCiudadano, fileData) {
-  // 1. El reporte se guarda primero. Si esto falla, el error llega al controlador.
-  const reporte = await reportRepository.create(datosCiudadano);
-
-  // 2. Fire-and-forget: sin await, así la IA no retrasa ni puede tumbar la respuesta.
-  ejecutarAnalisisVision(reporte, fileData.path).catch((error) => {
-    console.error(`[ReportService] Error no controlado en visión: ${error.message}`);
-  });
-
-  // 3. Respuesta inmediata al ciudadano.
-  return reporte;
-}
-
-module.exports = { crearReporte };
+module.exports = { procesarNuevoReporte };
