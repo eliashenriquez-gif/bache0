@@ -1,18 +1,25 @@
-const obtenerReportes = (req, res) => {
-    res.status(200).json({ data: [] });
-};
+'use strict';
 
-const crearReporte = (req, res) => {
-    const nuevoReporte = req.body;
-    if (!nuevoReporte.latitud || !nuevoReporte.longitud || !nuevoReporte.gravedad) {
-        return res.status(400).json({
-            error: "Validación fallida: Los campos 'latitud', 'longitud' y 'gravedad' son obligatorios."
-        });
+const reportService = require('../services/reportService');
+const AppError = require('../middlewares/AppError');
+
+/**
+ * POST /api/v1/reportes
+ * Recibe un reporte ciudadano (multipart/form-data, campo "foto").
+ */
+async function crearReporte(req, res, next) {
+  try {
+    if (!req.file) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'La fotografía es obligatoria.', [
+        { field: 'foto', issue: 'Es obligatoria.' },
+      ]);
     }
-    res.status(201).json({
-        mensaje: "Reporte creado exitosamente",
-        data: { id: Date.now(), estado: "Pendiente", ...nuevoReporte }
-    });
-};
 
-module.exports = { obtenerReportes, crearReporte };
+    const data = await reportService.crearReporte(req.body || {}, req.file);
+    return res.status(201).json({ data });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = { crearReporte };
