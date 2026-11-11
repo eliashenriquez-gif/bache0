@@ -8,7 +8,7 @@ async function probarIA() {
     // Apuntamos a la imagen de prueba que tu script de seed prepara
     const imagePath = path.join(__dirname, 'var', 'storage', 'reports', 'seed', 'demo-report-001.png');
     
-    console.log(`Iniciando prueba aislada con Gemini...`);
+    console.log(`Iniciando prueba aislada con TensorFlow Local...`);
     console.log(`Ruta de la imagen: ${imagePath}`);
     
     const startTime = Date.now();

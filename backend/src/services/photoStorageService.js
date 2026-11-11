@@ -141,7 +141,7 @@ async function readPhoto(key) {
 
 /** Ruta absoluta de una fotografía ya guardada (la usa el análisis de visión artificial). */
 function resolvePhotoPath(key) {
-  return path.join(storageDir, validarStorageKey(key));
+    return path.join(storageDir, key);
 }
 
 module.exports = {
@@ -149,10 +149,4 @@ module.exports = {
   deletePhoto,
   readPhoto,
   resolvePhotoPath
-};
-
-module.exports = {
-  savePhoto,
-  deletePhoto,
-  readPhoto
 };
