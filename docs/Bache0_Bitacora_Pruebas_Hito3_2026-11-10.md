@@ -58,3 +58,22 @@ Providencia está registrada, pero su servicio está deshabilitado deliberadamen
 Usar notebook como equipo principal de desarrollo y presentación, una vez restaurada la base del escritorio. Mantener la base de escritorio como copia de seguridad, sin mantener dos bases activas que deban sincronizarse a diario. Respaldar periódicamente la base del notebook y el almacenamiento privado.
 
 Este archivo documenta exclusivamente el estado probado hasta este punto: **no certifica la entrega final del Hito 3**.
+
+
+
+## Avances del 11 de noviembre de 2026 — Notebook
+
+- Rama integration/elias-david actualizada hasta b71d6de.
+- PostgreSQL restaurado y verificado en notebook.
+- Municipalidades: 4.
+- Reportes iniciales: 3.
+- Usuarios: 8.
+- Backend Express iniciado correctamente en puerto 3000.
+- Login del superadministrador: HTTP 200.
+- Consulta autenticada de reportes: HTTP 200.
+- Consulta sin JWT: HTTP 401, correctamente rechazada.
+- Cloudflare Quick Tunnel habilitado.
+- Acceso HTTPS externo comprobado: HTTP 401 sin JWT.
+- Pendiente: integración real del formulario de David con Vercel.
+- Pendiente: comprobar envío, folio, fotografía y persistencia.
+- Nota: el túnel HTTPS es temporal y requiere el notebook encendido.
