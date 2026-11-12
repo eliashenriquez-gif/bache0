@@ -1,42 +1,16 @@
 
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
 
 const reportController = require('../controllers/reportController');
 const { citizenRateLimiter } = require('../middlewares/citizenRateLimiter');
 const { authenticate } = require('../middlewares/authenticate');
 const { authorize } = require('../middlewares/authorize');
+const { createPhotoUpload } = require('../middlewares/uploadValidation');
 
 const router = express.Router();
 
-// Carpeta para almacenar fotografías
-const uploadsDir = path.join(__dirname, '../../uploads');
-
-// Crear carpeta si no existe
-fs.mkdirSync(uploadsDir, { recursive: true });
-
-// Configuración de almacenamiento
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-
-  filename: (req, file, cb) => {
-    const nombreUnico = crypto.randomUUID();
-    cb(null, nombreUnico);
-  }
-});
-
-// Configuración de Multer
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024
-  }
-});
+// Subida de la fotografía: tamaño máx. 10 MB, solo JPEG/PNG/WebP (ver middlewares/uploadValidation.js).
+const uploadPhoto = createPhotoUpload();
 
 // Permisos administrativos
 const canManageReports = authorize(
@@ -52,13 +26,7 @@ const canManageReports = authorize(
 router.post(
   '/',
   citizenRateLimiter(Number(process.env.REPORT_RATE_LIMIT_PER_10_MINUTES) || 5, 10 * 60 * 1000),
-  (req, res, next) => upload.single('foto')(req, res, (error) => {
-    if (error?.code === 'LIMIT_FILE_SIZE') {
-      const AppError = require('../middlewares/AppError');
-      return next(new AppError(413, 'FILE_TOO_LARGE', 'La fotografía supera los 10 MB.'));
-    }
-    return next(error);
-  }),
+  ...uploadPhoto,
   reportController.crearReporte
 );
 

@@ -271,14 +271,16 @@ test('con el análisis REAL del modelo (sin severidad estimada): se guardan toda
   assert.ok(!final.motivos.some((m) => m.tipo === 'advertencia'));
 });
 
-test('visión deshabilitada: NO se crea ninguna fila (antes quedaba una "pendiente" eterna) y no se analiza', async () => {
+test('visión deshabilitada: el reporte se crea (201) y el análisis queda "fallido" VISION_DESHABILITADA, sin analizar', async () => {
   process.env.VISION_ENABLED = 'false';
   const creado = await crear();
   await reportService.esperarAnalisisPendientes();
   assert.equal(creado.id, 7);
-  assert.equal(estado.filas.length, 0);
+  assert.equal(estado.filas.length, 1);
+  assert.equal(estado.filas[0].estado, 'fallido');
+  assert.equal(estado.filas[0].error_code, 'VISION_DESHABILITADA');
   assert.equal(estado.llamadasVision, 0);
-  assert.equal(estado.prioridades.length, 1);
+  assert.equal(estado.prioridades.length, 1, 'solo la provisional');
 });
 
 test('reproceso con una fila existente y visión deshabilitada: la fila pasa a "fallido", no queda pendiente', async () => {
@@ -289,6 +291,34 @@ test('reproceso con una fila existente y visión deshabilitada: la fila pasa a "
   await reportService.ejecutarAnalisisVision(reporte, imagenGuardada, { analisisId: 55 });
   assert.equal(estado.filas[0].estado, 'fallido');
   assert.equal(estado.filas[0].error_code, 'VISION_DESHABILITADA');
+});
+
+// ───────────── Clasificación vial resuelta por locationService ─────────────
+test('el tipo de vía confirmado viaja a createReport y entra en la prioridad provisional', async () => {
+  estado.ubicacionExtra = {
+    clasificacion_vial: 'troncal', clasificacion_vial_estado: 'confirmada',
+    clasificacion_vial_fuente: 'OpenStreetMap/Nominatim way/1 highway=primary -> troncal (osm-highway-v1, equivalencia no oficial)',
+    clasificacion_vial_verificada_at: '2026-11-11T12:00:00.000Z',
+  };
+  await crear();
+  await reportService.esperarAnalisisPendientes();
+  const enviado = estado.creados[0];
+  assert.equal(enviado.clasificacion_vial, 'troncal');
+  assert.equal(enviado.clasificacion_vial_estado, 'confirmada');
+  assert.ok(enviado.clasificacion_vial_fuente && enviado.clasificacion_vial_verificada_at);
+  const [provisional] = estado.prioridades;
+  assert.ok(provisional.entrada.motivos.some((m) => m.tipo === 'antecedente' && m.factor === 'clasificacion_vial' && m.valor === 'troncal'));
+  const faltantes = provisional.entrada.motivos.filter((m) => m.tipo === 'dato_no_disponible').map((m) => m.factor);
+  assert.deepEqual(faltantes, ['analisis_imagen']);
+});
+
+test('sin clasificación (valores ausentes en la ubicación): se guarda null / pendiente como antes', async () => {
+  await crear();
+  const enviado = estado.creados[0];
+  assert.equal(enviado.clasificacion_vial, null);
+  assert.equal(enviado.clasificacion_vial_estado, 'pendiente');
+  assert.equal(enviado.clasificacion_vial_fuente, null);
+  await reportService.esperarAnalisisPendientes();
 });
 
 // ───────────── Fallos de la infraestructura secundaria ─────────────

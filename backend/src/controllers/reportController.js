@@ -37,6 +37,7 @@ async function obtenerReporte(req, res) {
 async function crearReporte(req, res, next) {
   try {
     const data = await reporteService.procesarNuevoReporte(req.body || {}, req.file, req.requestId);
+    if (data?.id != null) res.location(`/api/v1/reportes/${data.id}`);
     return res.status(201).json({ data });
   } catch (error) { return next(error); }
 }
