@@ -235,7 +235,7 @@ export default function ReporteBacheScreen() {
           <h2 style={{ color: '#0033A0' }}>Módulo de Terreno</h2>
           <p>Los reportes de baches están diseñados para realizarse desde un dispositivo móvil.</p>
           <strong>Ingresa desde tu celular para realizar un reporte.</strong>
-          <div><img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://bache0.vercel.app/reporte" alt="Código QR para ingresar desde el celular" style={{ marginTop: 20, padding: 5, border: '1px solid #ddd' }} /></div>
+          <div><img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`${window.location.origin}/reporte`)}`} alt="Código QR para ingresar desde el celular" style={{ marginTop: 20, padding: 5, border: '1px solid #ddd' }} /></div>
         </div>
       </div>
     );
