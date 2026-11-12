@@ -1,7 +1,7 @@
 const path = require('node:path');
+const crypto = require('node:crypto');
 
-// Cargar las variables de entorno antes de importar rutas y middlewares.
-// El archivo .env está en la raíz del proyecto.
+// Cargar las variables de entorno
 require('dotenv').config({
   path: path.resolve(__dirname, '../../.env'),
 });
@@ -13,6 +13,8 @@ const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const ubicacionRoutes = require('./routes/ubicacionRoutes');
+const visionRoutes = require('./routes/visionRoutes');
+const visionService = require('./services/visionService');
 
 const {
   errorHandler,
@@ -22,32 +24,45 @@ const {
 const { seedSuperadmin } = require('./bootstrap/seedSuperadmin');
 
 const app = express();
-const PORT = 3000;
+// 1. ARRANCAR PUERTO CORRECTAMENTE (P0)
+const PORT = Number(process.env.PORT) || 3000;
 
-// Middlewares generales
-app.use(cors());
-app.use(express.json());
+// 2. SEGURIDAD Y LIMITES BASE (P0)
+const helmet = require('helmet');
+app.use(helmet()); // Agregado Helmet para cabeceras de seguridad
+// El CORS está abierto ahora, pero idealmente process.env.CORS_ORIGIN
+app.use(cors()); 
+app.use(express.json({ limit: '12mb' })); // Límite para evitar ataques de JSON gigante
+
+// 3. MIDDLEWARE DE REQUEST ID PARA AUDITORÍA (P0)
+app.use((req, res, next) => {
+  req.requestId = crypto.randomUUID();
+  next();
+});
+
+// 4. ENDPOINT DE HEALTH CHECK (P0 - Exigido por contrato H2)
+app.get('/api/v1/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Rutas API
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1', visionRoutes);
 app.use('/api/v1/reportes', reportRoutes);
 app.use('/api/v1/usuarios', userRoutes);
 app.use('/api/v1/ubicaciones', ubicacionRoutes);
 
-// Manejo de rutas y errores
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Inicio del servidor
 async function start() {
-  // En desarrollo, asegurar la existencia del superadministrador inicial.
-  // En producción, se crea mediante el procedimiento de inicialización correspondiente.
   if (process.env.NODE_ENV !== 'production') {
     await seedSuperadmin();
   }
 
   app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    visionService.precalentar();
   });
 }
 

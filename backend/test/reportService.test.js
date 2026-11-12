@@ -1,14 +1,11 @@
 'use strict';
 
 // Ejecutar con: node --test test/reportService.test.js
-// Prueba el flujo completo reportService → visionService (real) → priorityService (real).
-// El SDK de Gemini, el almacenamiento, la ubicación y la base de datos están simulados.
+// Prueba el flujo completo reportService → priorityService (real) con visionService SIMULADO
+// (la inferencia real con sharp + TensorFlow.js en Worker se prueba en visionService.test.js y
+// visionModel.integration.test.js). El almacenamiento, la ubicación y la base de datos también están simulados.
 // El último bloque verifica que lo que genera reportService lo aceptan los repositorios REALES.
 
-process.env.GEMINI_API_KEY = 'clave-de-prueba';
-process.env.GEMINI_MODELS = 'modelo-a';
-process.env.VISION_TIMEOUT_MS = '150';
-process.env.VISION_BACKOFF_BASE_MS = '1';
 delete process.env.VISION_ENABLED;
 
 const test = require('node:test');
@@ -24,34 +21,40 @@ function reiniciar() {
   Object.assign(estado, {
     eventos: [], filas: [], prioridades: [], contextos: [], eliminadas: [], creados: [],
     fallaCrear: false, fallaCrearFila: false, fallaActualizarFila: false, fallaPrioridad: false,
-    sdk: async () => respuestaGemini({ tipo_desperfecto: 'bache', severidad_sugerida: 'alta', confianza: 0.9 }),
-    llamadasSdk: 0,
+    vision: async () => analisisOk(),
+    llamadasVision: 0,
+    ubicacionExtra: {}, // campos adicionales que devuelve locationService (p. ej. clasificacion_vial_*)
   });
 }
-const respuestaGemini = (obj) => ({ response: { text: () => (typeof obj === 'string' ? obj : JSON.stringify(obj)) } });
+// Resultado de visionService.analyzeImage. `severidad_sugerida: 'alta'` simula un modelo que estima severidad
+// (el modelo actual NO lo hace: ver la prueba "con el análisis REAL del modelo").
+const analisisOk = (extra = {}) => ({
+  ok: true,
+  analisis: {
+    tipo_desperfecto: 'bache', severidad_sugerida: 'alta', confianza: 0.9,
+    proveedor: 'TensorFlow-Local', modelo: 'MobileNetV2-TeachableMachine', version_modelo: 'tm-test@2026-11-11+sha256:abc123', ...extra,
+  },
+});
+const falloVision = (error_code) => ({ ok: false, error_code, mensaje: 'simulado' });
 
 const imagenGuardada = path.join(os.tmpdir(), `bache0-guardada-${process.pid}.jpg`);
 fs.writeFileSync(imagenGuardada, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]));
 
 // ── Dobles de los módulos que tocan red, disco o PostgreSQL ──
 const dobles = {
-  '@google/generative-ai': {
-    GoogleGenerativeAI: class {
-      getGenerativeModel() {
-        return {
-          generateContent: (_partes, opciones) => {
-            estado.llamadasSdk += 1;
-            estado.eventos.push('gemini');
-            return estado.sdk({ signal: opciones?.signal });
-          },
-        };
-      }
+  './visionService': {
+    visionHabilitada: () => process.env.VISION_ENABLED !== 'false',
+    analyzeImage: async (ruta) => {
+      estado.llamadasVision += 1;
+      estado.eventos.push('vision');
+      return estado.vision(ruta);
     },
   },
   './locationService': {
     resolverUbicacion: async () => ({
       municipalidad: { id: 1 }, direccion_detectada: 'Av. Test 123', calle_detectada: 'Av. Test',
       comuna_detectada: 'La Pintana', region_detectada: 'Metropolitana', estado_resolucion: 'resuelta',
+      ...estado.ubicacionExtra,
     }),
   },
   './photoStorageService': {
@@ -68,7 +71,7 @@ const dobles = {
       estado.creados.push(input);
       estado.eventos.push('reporte_creado');
       const { foto_storage_key, foto_mime_type, foto_size_bytes, foto_sha256, foto_ancho_px, foto_alto_px, geocodificacion_proveedor, ...publico } = input;
-      return { id: 7, folio: 'B0-7', estado: 'pendiente', clasificacion_vial_fuente: null, prioridad: null, motivos: [], version_reglas: null, ...publico };
+      return { id: 7, folio: 'B0-7', estado: 'pendiente', clasificacion_vial_fuente: null, clasificacion_vial_verificada_at: null, prioridad: null, motivos: [], version_reglas: null, ...publico };
     },
   },
 };
@@ -151,34 +154,35 @@ test.after(() => {
   fs.rmSync(imagenGuardada, { force: true });
 });
 
-// ───────────── Cola persistida: pendiente → Gemini → completado ─────────────
-test('crea la fila "pendiente" ANTES de llamar a Gemini y responde sin esperar a la IA', async () => {
+// ───────────── Cola persistida: pendiente → inferencia local → completado ─────────────
+test('crea la fila "pendiente" ANTES de analizar y responde sin esperar a la IA', async () => {
   const espera = diferido();
-  estado.sdk = () => espera.promesa; // Gemini "tarda"
+  estado.vision = () => espera.promesa; // la inferencia "tarda"
 
   const creado = await crear();
   assert.equal(creado.id, 7);
 
-  await esperarHasta(() => estado.eventos.includes('gemini'));
-  // Gemini sigue pendiente, y la fila ya existe en la cola:
+  await esperarHasta(() => estado.eventos.includes('vision'));
+  // La inferencia sigue en curso, y la fila ya existe en la cola:
   assert.equal(estado.filas.length, 1);
   assert.equal(estado.filas[0].estado, 'pendiente');
   assert.equal(estado.filas[0].reporte_id, 7);
-  assert.deepEqual(estado.eventos, ['reporte_creado', 'prioridad', 'fila_creada', 'gemini']);
+  assert.deepEqual(estado.eventos, ['reporte_creado', 'prioridad', 'fila_creada', 'vision']);
 
-  espera.resolver(respuestaGemini({ tipo_desperfecto: 'bache', severidad_sugerida: 'alta', confianza: 0.9 }));
+  espera.resolver(analisisOk());
   await reportService.esperarAnalisisPendientes();
 
   // La MISMA fila pasa a completado (no se crea otra):
   assert.equal(estado.filas.length, 1);
   const fila = estado.filas[0];
   assert.equal(fila.estado, 'completado');
-  assert.equal(fila.proveedor, 'google-gemini');
-  assert.equal(fila.modelo, 'modelo-a');
+  assert.equal(fila.proveedor, 'TensorFlow-Local');
+  assert.equal(fila.modelo, 'MobileNetV2-TeachableMachine');
+  assert.equal(fila.version_modelo, 'tm-test@2026-11-11+sha256:abc123', 'version_modelo se guarda (antes quedaba null)');
   assert.equal(fila.error_code, null);
   assert.ok(!Number.isNaN(Date.parse(fila.analizado_at)));
   assert.deepEqual(fila.detecciones, [{ etiqueta: 'bache', confianza: 0.9, caja: null, severidad_sugerida: 'alta' }]);
-  assert.deepEqual(estado.eventos, ['reporte_creado', 'prioridad', 'fila_creada', 'gemini', 'fila_completado', 'prioridad']);
+  assert.deepEqual(estado.eventos, ['reporte_creado', 'prioridad', 'fila_creada', 'vision', 'fila_completado', 'prioridad']);
 });
 
 test('prioridad: provisional al crear y recalculada con la IA (4 + 1 + 1 = 6 → alta)', async () => {
@@ -218,7 +222,7 @@ test('los procesos automáticos actúan como sistema con ámbito de la municipal
 });
 
 test('si la IA no aporta, igual se completa la fila y la prioridad no baja', async () => {
-  estado.sdk = async () => respuestaGemini({ tipo_desperfecto: 'ninguno', severidad_sugerida: 'baja', confianza: 0.95 });
+  estado.vision = async () => analisisOk({ tipo_desperfecto: 'ninguno', severidad_sugerida: 'baja', confianza: 0.95 });
   await crear();
   await reportService.esperarAnalisisPendientes();
   assert.equal(estado.filas[0].estado, 'completado');
@@ -226,13 +230,9 @@ test('si la IA no aporta, igual se completa la fila y la prioridad no baja', asy
 });
 
 // ───────────── Regla de oro: la IA falla y el reporte se guarda igual ─────────────
-for (const [nombre, comportamiento, codigo] of [
-  ['503 persistente', async () => { throw status(503, 'Service Unavailable'); }, 'VISION_UPSTREAM_503'],
-  ['respuesta inválida', async () => respuestaGemini({ tipo_desperfecto: 'pothole', severidad_sugerida: 'alta', confianza: 0.9 }), 'VISION_INVALID_RESPONSE'],
-  ['cuelgue', ({ signal }) => new Promise((_, rechazo) => signal.addEventListener('abort', () => rechazo(Object.assign(new Error('aborted'), { name: 'AbortError' })))), 'VISION_TIMEOUT'],
-]) {
-  test(`Gemini ${nombre}: la MISMA fila pasa a "fallido" con ${codigo}`, async () => {
-    estado.sdk = comportamiento;
+for (const codigo of ['VISION_TIMEOUT', 'VISION_WORKER_CAIDO', 'VISION_PREPROCESO_FALLO', 'VISION_SATURADO']) {
+  test(`la visión falla con ${codigo}: la MISMA fila pasa a "fallido" y el reporte ya estaba guardado`, async () => {
+    estado.vision = async () => falloVision(codigo);
     const inicio = Date.now();
     const creado = await crear();
     assert.ok(Date.now() - inicio < 1000, 'el ciudadano no espera a la IA');
@@ -246,27 +246,62 @@ for (const [nombre, comportamiento, codigo] of [
   });
 }
 
-test('visión deshabilitada: la fila queda "pendiente" (no es un fallo) y no se llama a Gemini', async () => {
-  process.env.VISION_ENABLED = 'false';
+test('el modelo lanza una excepción inesperada: no hay rechazos sin manejar y la fila queda reprocesable', async () => {
+  estado.vision = async () => { throw new Error('excepción no prevista'); };
+  const creado = await crear();
+  await reportService.esperarAnalisisPendientes();
+  assert.equal(creado.id, 7);
+  assert.equal(estado.filas[0].estado, 'pendiente');
+  assert.ok(logsError.some((l) => l.includes('excepción no prevista')));
+});
+
+test('con el análisis REAL del modelo (sin severidad estimada): se guardan todas las clases y la IA aporta +0', async () => {
+  const { interpretarPrediccion } = require('../src/services/visionPrediction');
+  const real = interpretarPrediccion(['Bache', 'Calle Sana', 'Otro'], [0.93, 0.05, 0.02], { version_modelo: 'tm-real@x' });
+  estado.vision = async () => ({ ok: true, analisis: real });
   await crear();
   await reportService.esperarAnalisisPendientes();
-  assert.equal(estado.filas.length, 1);
-  assert.equal(estado.filas[0].estado, 'pendiente');
-  assert.equal(estado.llamadasSdk, 0);
+  const fila = estado.filas[0];
+  assert.equal(fila.estado, 'completado');
+  assert.equal(fila.version_modelo, 'tm-real@x');
+  assert.deepEqual(fila.detecciones.map((d) => d.clase_modelo), ['Bache', 'Calle Sana', 'Otro']);
+  assert.ok(fila.detecciones.every((d) => d.severidad_sugerida === null));
+  const final = estado.prioridades.at(-1).entrada;
+  assert.equal(final.motivos.find((m) => m.tipo === 'resumen').puntaje, 5); // 4 + 1 + 0, sin falsa discrepancia
+  assert.ok(!final.motivos.some((m) => m.tipo === 'advertencia'));
+});
+
+test('visión deshabilitada: NO se crea ninguna fila (antes quedaba una "pendiente" eterna) y no se analiza', async () => {
+  process.env.VISION_ENABLED = 'false';
+  const creado = await crear();
+  await reportService.esperarAnalisisPendientes();
+  assert.equal(creado.id, 7);
+  assert.equal(estado.filas.length, 0);
+  assert.equal(estado.llamadasVision, 0);
   assert.equal(estado.prioridades.length, 1);
 });
 
+test('reproceso con una fila existente y visión deshabilitada: la fila pasa a "fallido", no queda pendiente', async () => {
+  process.env.VISION_ENABLED = 'false';
+  estado.filas.push({ id: 55, reporte_id: 7, estado: 'pendiente', detecciones: [] });
+  estado.vision = async () => falloVision('VISION_DESHABILITADA');
+  const reporte = { id: 7, municipalidad_id: 1, severidad: 'alta', concurrencia_vial: 'media', infraestructura_critica: 'ninguna', clasificacion_vial: null, clasificacion_vial_estado: 'pendiente' };
+  await reportService.ejecutarAnalisisVision(reporte, imagenGuardada, { analisisId: 55 });
+  assert.equal(estado.filas[0].estado, 'fallido');
+  assert.equal(estado.filas[0].error_code, 'VISION_DESHABILITADA');
+});
+
 // ───────────── Fallos de la infraestructura secundaria ─────────────
-test('si no se puede crear la fila pendiente, no se gasta cuota de Gemini y el reporte queda guardado', async () => {
+test('si no se puede crear la fila pendiente, no se ejecuta la inferencia y el reporte queda guardado', async () => {
   estado.fallaCrearFila = true;
   const creado = await crear();
   await reportService.esperarAnalisisPendientes();
   assert.equal(creado.id, 7);
-  assert.equal(estado.llamadasSdk, 0);
+  assert.equal(estado.llamadasVision, 0);
   assert.ok(logsError.some((l) => l.includes('INSERT análisis falló')));
 });
 
-test('si falla actualizar la fila tras Gemini: queda "pendiente" para reproceso y no se recalcula', async () => {
+test('si falla actualizar la fila tras la inferencia: queda "pendiente" para reproceso y no se recalcula', async () => {
   estado.fallaActualizarFila = true;
   const creado = await crear();
   await reportService.esperarAnalisisPendientes();
@@ -292,7 +327,7 @@ test('persistencia no disponible: el reporte se guarda y no hay rechazos sin man
   const creado = await crear();
   await reportService.esperarAnalisisPendientes();
   assert.equal(creado.id, 7);
-  assert.equal(estado.llamadasSdk, 0);
+  assert.equal(estado.llamadasVision, 0);
   assert.ok(logsError.some((l) => l.includes('PostgreSQL no responde')));
 });
 
@@ -317,7 +352,7 @@ test('si falla la creación: se propaga el error, se borra la foto y no se toca 
   assert.deepEqual(estado.eliminadas, ['aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.jpg']);
   await reportService.esperarAnalisisPendientes();
   assert.deepEqual(estado.eventos, []);
-  assert.equal(estado.llamadasSdk, 0);
+  assert.equal(estado.llamadasVision, 0);
 });
 
 test('datos inválidos: AppError 400 y no se crea nada', async () => {
@@ -333,7 +368,7 @@ test('el temporal de Multer se elimina y el análisis usa la copia persistida', 
   await crear(datosValidos(), foto);
   assert.equal(fs.existsSync(foto.path), false);
   await reportService.esperarAnalisisPendientes();
-  assert.equal(estado.llamadasSdk, 1);
+  assert.equal(estado.llamadasVision, 1);
   assert.equal(estado.filas[0].estado, 'completado');
 });
 

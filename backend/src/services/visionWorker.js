@@ -1,107 +1,83 @@
 'use strict';
 
-const { parentPort } = require('worker_threads');
-const tf = require('@tensorflow/tfjs');
+const { parentPort } = require('node:worker_threads');
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
+const tf = require('@tensorflow/tfjs');
+const { interpretarPrediccion } = require('./visionPrediction');
 
-let model = null;
-let metadata = null;
+const MODEL_DIR = path.join(__dirname, '..', 'models', 'vision');
+const TAM = 224;
 
-// Simulador del fileSystem para evitar instalar tfjs-node en Windows
-function localFileHandler(modelPath) {
+function aArrayBuffer(buf) {
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+}
+
+function leerArtefactos(rutaModelo) {
+  const modelJson = JSON.parse(fs.readFileSync(rutaModelo, 'utf8'));
+  const dir = path.dirname(rutaModelo);
+  const grupos = modelJson.weightsManifest;
+  const pesos = Buffer.concat(
+    grupos.flatMap((g) => g.paths).map((archivo) => fs.readFileSync(path.join(dir, archivo)))
+  );
+
   return {
-    load: async () => {
-      const modelJson = JSON.parse(fs.readFileSync(modelPath, 'utf8'));
-      const dir = path.dirname(modelPath);
-      const weightsPath = path.join(dir, modelJson.weightsManifest[0].paths[0]);
-      const weightData = fs.readFileSync(weightsPath).buffer;
-      return {
-        modelTopology: modelJson.modelTopology,
-        weightSpecs: modelJson.weightsManifest[0].weights,
-        weightData: weightData
-      };
-    }
+    artefactos: {
+      modelTopology: modelJson.modelTopology,
+      weightSpecs: grupos.flatMap((g) => g.weights),
+      weightData: aArrayBuffer(pesos),
+    },
+    sha256: crypto.createHash('sha256').update(pesos).digest('hex'),
   };
 }
 
-async function cargarModelo() {
-  if (model) return;
-  const modelDir = path.join(__dirname, '..', 'models', 'vision');
-  const modelPath = path.join(modelDir, 'model.json');
-  const metaPath = path.join(modelDir, 'metadata.json');
+let cargando = null;
 
-  try {
-    metadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-    model = await tf.loadLayersModel(localFileHandler(modelPath));
-    // Calentamiento del modelo (predicción en vacío para que la primera real sea rápida)
-    tf.tidy(() => { model.predict(tf.zeros([1, 224, 224, 3])); });
-  } catch (error) {
-    throw new Error('Faltan los archivos del modelo en src/models/vision/ o están corruptos.');
+function cargarModelo() {
+  if (!cargando) {
+    cargando = (async () => {
+      const metadata = JSON.parse(fs.readFileSync(path.join(MODEL_DIR, 'metadata.json'), 'utf8'));
+      const { artefactos, sha256 } = leerArtefactos(path.join(MODEL_DIR, 'model.json'));
+      const model = await tf.loadLayersModel({ load: async () => artefactos });
+
+      tf.tidy(() => { model.predict(tf.zeros([1, TAM, TAM, 3])); }); // Calentamiento
+
+      const exportado = String(metadata.timeStamp || '').slice(0, 10) || 'sin-fecha';
+      const version_modelo = `${metadata.modelName || 'modelo'}@${exportado}+sha256:${sha256.slice(0, 12)}`;
+
+      return { model, metadata, version_modelo };
+    })().catch((error) => {
+      cargando = null;
+      throw new Error(`No se pudo cargar el modelo: ${error.message}`);
+    });
   }
+  return cargando;
 }
 
-parentPort.on('message', async (mensaje) => {
+function predecir(model, pixeles, width, height) {
+  const salida = tf.tidy(() => {
+    const imagen = tf.tensor3d(new Uint8Array(pixeles), [height, width, 3], 'int32');
+    const entrada = imagen.cast('float32').div(127.5).sub(1).expandDims(0);
+    const prediccion = model.predict(entrada);
+    const tensor = Array.isArray(prediccion) ? prediccion[0] : prediccion;
+    return tensor.dataSync();
+  });
+  return Array.from(salida);
+}
+
+parentPort.on('message', async ({ id, pixeles, width, height }) => {
   try {
-    await cargarModelo();
-    
-    const { pixelesCrudos, width, height } = mensaje;
-    
-    // Predicción matemática sin fugas de memoria
-    const resultados = tf.tidy(() => {
-      // 1. Convertir los píxeles que envió sharp a un tensor 3D
-      const imgTensor = tf.tensor3d(new Uint8Array(pixelesCrudos), [height, width, 3], 'int32');
-      
-      // 2. Normalización de Teachable Machine: (pixel / 127.5) - 1
-      const normalizado = imgTensor.toFloat().div(127.5).sub(1).expandDims(0);
-      
-      // 3. Predecir
-      const prediccion = model.predict(normalizado);
-      return prediccion.dataSync(); // Extrae los puntajes de forma síncrona
-    });
-
-    // Mapear los resultados con las etiquetas del metadata
-    let mejorClase = metadata.labels[0];
-    let mayorConfianza = resultados[0];
-
-    for (let i = 1; i < resultados.length; i++) {
-      if (resultados[i] > mayorConfianza) {
-        mayorConfianza = resultados[i];
-        mejorClase = metadata.labels[i];
-      }
-    }
-    
-    console.log(`[VisionWorker] ¡IA TERMINÓ!`);
-    console.log(`[VisionWorker] Predicción: ${mejorClase}`);
-    console.log(`[VisionWorker] Confianza: ${(mayorConfianza * 100).toFixed(2)}%`);
-
-    // Traducción de la IA a nuestro contrato de dominio
-    let tipo_desperfecto = 'ninguno';
-    let severidad_sugerida = 'baja';
-
-    // Asegúrate de que los nombres coincidan con los que le pusiste a las clases en Teachable Machine
-    if (mejorClase.toLowerCase().includes('bache')) {
-      tipo_desperfecto = 'bache';
-      severidad_sugerida = mejorClase.toLowerCase().includes('grave') ? 'alta' : 'media';
-    } 
-    // Si la confianza es muy baja o es la clase "Otro"
-    if (mayorConfianza < 0.6 || mejorClase.toLowerCase().includes('otro')) {
-       tipo_desperfecto = 'ninguno';
-       severidad_sugerida = 'baja';
-    }
-
+    const { model, metadata, version_modelo } = await cargarModelo();
+    const puntajes = predecir(model, pixeles, width, height);
     parentPort.postMessage({
+      id,
       ok: true,
-      analisis: {
-        tipo_desperfecto,
-        severidad_sugerida,
-        confianza: Number(mayorConfianza.toFixed(2)),
-        proveedor: 'TensorFlow-Local',
-        modelo: 'MobileNet-TeachableMachine'
-      }
+      analisis: interpretarPrediccion(metadata.labels, puntajes, { version_modelo }),
     });
-
   } catch (error) {
-    parentPort.postMessage({ ok: false, error: error.message });
+    parentPort.postMessage({ id, ok: false, error: error.message });
   }
 });
+
+cargarModelo().catch((error) => console.error(`[VisionWorker] ${error.message}`));

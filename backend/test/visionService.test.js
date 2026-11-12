@@ -1,183 +1,205 @@
 'use strict';
 
-// Ejecutar con: node --test tests/visionService.test.js
-// Usa un SDK simulado: no llama a Gemini ni necesita clave real.
-
-process.env.GEMINI_API_KEY = 'clave-de-prueba';
-process.env.GEMINI_MODELS = 'modelo-a,modelo-b';
-process.env.VISION_TIMEOUT_MS = '60';
-process.env.VISION_BACKOFF_BASE_MS = '1';
-delete process.env.VISION_ENABLED;
+// node --test test/visionService.test.js
+// Prueba el servicio con dobles de sharp y de Worker: no necesita TensorFlow, sharp ni modelo.
+// La prueba contra el modelo REAL está en test/visionModel.integration.test.js.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const Module = require('node:module');
+const { EventEmitter } = require('node:events');
+const visionService = require('../src/services/visionService');
 
-// ── SDK simulado: cada test define cómo responde cada llamada ──
-let comportamiento = null;
-const llamadas = [];
+const PIXELES = { pixeles: new Uint8Array(224 * 224 * 3), width: 224, height: 224 };
+const ANALISIS_OK = { tipo_desperfecto: 'bache', severidad_sugerida: null, confianza: 0.9, proveedor: 'TensorFlow-Local', modelo: 'm', version_modelo: 'v', detecciones: [] };
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
-class FakeGoogleGenerativeAI {
-  getGenerativeModel({ model }) {
-    return {
-      generateContent: (_partes, opciones) => {
-        llamadas.push(model);
-        return comportamiento({ model, signal: opciones?.signal, n: llamadas.length });
-      },
-    };
+/** Worker falso. `comportamiento(mensaje, worker)` decide qué hace al recibir una foto. */
+class WorkerFalso extends EventEmitter {
+  constructor(comportamiento) {
+    super();
+    this.comportamiento = comportamiento;
+    this.mensajes = [];
+    this.terminado = false;
+    this.unrefLlamado = false;
   }
+  postMessage(mensaje) { this.mensajes.push(mensaje); this.comportamiento(mensaje, this); }
+  terminate() { this.terminado = true; this.emit('exit', 1); return Promise.resolve(1); }
+  unref() { this.unrefLlamado = true; }
+}
+const responde = (analisis = ANALISIS_OK) => (m, w) => setImmediate(() => w.emit('message', { id: m.id, ok: true, analisis }));
+
+let creados;
+function instalar(comportamiento, preprocesar = async () => PIXELES) {
+  creados = [];
+  visionService._setDependenciasParaPruebas({
+    preprocesar,
+    crearWorker: () => { const w = new WorkerFalso(comportamiento); creados.push(w); return w; },
+  });
 }
 
-const cargaOriginal = Module._load;
-Module._load = function (request, ...resto) {
-  if (request === '@google/generative-ai') return { GoogleGenerativeAI: FakeGoogleGenerativeAI };
-  return cargaOriginal.call(this, request, ...resto);
-};
-const { analyzeImage } = require('../src/services/visionService');
-Module._load = cargaOriginal;
-
-// ── Utilidades ──
-const imagen = path.join(os.tmpdir(), `bache0-test-${process.pid}.jpg`);
-fs.writeFileSync(imagen, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]));
-test.after(() => fs.rmSync(imagen, { force: true }));
-
-const respuesta = (obj) => ({ response: { text: () => (typeof obj === 'string' ? obj : JSON.stringify(obj)) } });
-const valida = { tipo_desperfecto: 'bache', severidad_sugerida: 'alta', confianza: 0.82 };
-const conStatus = (status, msg) => Object.assign(new Error(`[${status} ${msg}] error simulado`), { status });
-const colgado = ({ signal }) => new Promise((_, reject) => {
-  signal.addEventListener('abort', () => reject(Object.assign(new Error('The operation was aborted'), { name: 'AbortError' })));
-});
-
-const preparar = (fn) => { llamadas.length = 0; comportamiento = fn; };
-
-// Silenciar logs de error esperados durante las pruebas.
-const consoleError = console.error;
-test.before(() => { console.error = () => {}; });
-test.after(() => { console.error = consoleError; });
-
-// ── Pruebas ──
-test('éxito: devuelve el análisis normalizado con proveedor y modelo', async () => {
-  preparar(async () => respuesta(valida));
-  const r = await analyzeImage(imagen);
-  assert.equal(r.ok, true);
-  assert.deepEqual(r.analisis, { ...valida, proveedor: 'google-gemini', modelo: 'modelo-a' });
-  assert.equal(llamadas.length, 1);
-});
-
-test('503 en el primer modelo: reintenta y cae al siguiente modelo', async () => {
-  preparar(async ({ model }) => {
-    if (model === 'modelo-a') throw conStatus(503, 'Service Unavailable');
-    return respuesta(valida);
-  });
-  const r = await analyzeImage(imagen);
-  assert.equal(r.ok, true);
-  assert.equal(r.analisis.modelo, 'modelo-b');
-  assert.deepEqual(llamadas, ['modelo-a', 'modelo-a', 'modelo-b']);
-});
-
-test('503 en todos los modelos: error_code VISION_UPSTREAM_503 y 4 intentos', async () => {
-  preparar(async () => { throw conStatus(503, 'Service Unavailable'); });
-  const r = await analyzeImage(imagen);
-  assert.equal(r.ok, false);
-  assert.equal(r.error_code, 'VISION_UPSTREAM_503');
-  assert.equal(llamadas.length, 4);
-});
-
-test('cuelgue: se cancela con AbortController y devuelve VISION_TIMEOUT', async () => {
-  preparar(colgado);
-  const inicio = Date.now();
-  const r = await analyzeImage(imagen);
-  assert.equal(r.ok, false);
-  assert.equal(r.error_code, 'VISION_TIMEOUT');
-  assert.ok(Date.now() - inicio < 2000);
-});
-
-test('429 se reintenta; 404 pasa directo al siguiente modelo sin reintentar', async () => {
-  preparar(async ({ model }) => {
-    if (model === 'modelo-a') throw conStatus(404, 'Not Found');
-    return respuesta(valida);
-  });
-  const r = await analyzeImage(imagen);
-  assert.equal(r.ok, true);
-  assert.deepEqual(llamadas, ['modelo-a', 'modelo-b']);
-
-  preparar(async () => { throw conStatus(429, 'Too Many Requests'); });
-  const r2 = await analyzeImage(imagen);
-  assert.equal(r2.error_code, 'VISION_UPSTREAM_429');
-  assert.equal(llamadas.length, 4);
-});
-
-test('401/403: error fatal, no prueba otros modelos', async () => {
-  preparar(async () => { throw conStatus(403, 'Forbidden'); });
-  const r = await analyzeImage(imagen);
-  assert.equal(r.error_code, 'VISION_AUTH');
-  assert.equal(llamadas.length, 1);
-});
-
-test('error de red: VISION_RED', async () => {
-  preparar(async () => { throw new TypeError('fetch failed'); });
-  const r = await analyzeImage(imagen);
-  assert.equal(r.error_code, 'VISION_RED');
-});
-
-test('respuestas inválidas del modelo: VISION_INVALID_RESPONSE', async () => {
-  const invalidas = [
-    { ...valida, tipo_desperfecto: 'pothole' },
-    { ...valida, severidad_sugerida: 'critica' },
-    { ...valida, confianza: 'abc' },
-    { ...valida, confianza: null },
-    { ...valida, confianza: 85 },
-    { ...valida, confianza: -0.2 },
-    { tipo_desperfecto: 'bache' },
-    'esto no es json',
-    '[]',
-    'null',
-  ];
-  for (const cuerpo of invalidas) {
-    preparar(async () => respuesta(cuerpo));
-    const r = await analyzeImage(imagen);
-    assert.equal(r.ok, false, JSON.stringify(cuerpo));
-    assert.equal(r.error_code, 'VISION_INVALID_RESPONSE', JSON.stringify(cuerpo));
-  }
-});
-
-test('acepta confianza numérica en texto y bloque markdown', async () => {
-  preparar(async () => respuesta('```json\n{"tipo_desperfecto":"Bache","severidad_sugerida":"ALTA","confianza":"0.7"}\n```'));
-  const r = await analyzeImage(imagen);
-  assert.equal(r.ok, true);
-  assert.equal(r.analisis.tipo_desperfecto, 'bache');
-  assert.equal(r.analisis.confianza, 0.7);
-});
-
-test('archivo ilegible: VISION_ARCHIVO_ILEGIBLE sin llamar al SDK', async () => {
-  preparar(async () => respuesta(valida));
-  const r = await analyzeImage(path.join(os.tmpdir(), 'no-existe-bache0.jpg'));
-  assert.equal(r.ok, false);
-  assert.equal(r.error_code, 'VISION_ARCHIVO_ILEGIBLE');
-  assert.equal(llamadas.length, 0);
-});
-
-test('visión deshabilitada y clave ausente devuelven su error_code', async () => {
-  preparar(async () => respuesta(valida));
-
-  process.env.VISION_ENABLED = 'false';
-  assert.equal((await analyzeImage(imagen)).error_code, 'VISION_DESHABILITADA');
+const consolaOriginal = console.error;
+test.beforeEach(() => {
+  console.error = () => {};
   delete process.env.VISION_ENABLED;
-
-  const clave = process.env.GEMINI_API_KEY;
-  delete process.env.GEMINI_API_KEY;
-  assert.equal((await analyzeImage(imagen)).error_code, 'VISION_SIN_CLAVE');
-  process.env.GEMINI_API_KEY = clave;
-  assert.equal(llamadas.length, 0);
+  process.env.VISION_TIMEOUT_MS = '500';
+  delete process.env.VISION_MAX_COLA;
+  instalar(responde());
+});
+test.afterEach(async () => {
+  await visionService.cerrarVision();
+  visionService._setDependenciasParaPruebas();
+  console.error = consolaOriginal;
 });
 
-test('nunca lanza, aunque el SDK falle de forma inesperada', async () => {
-  preparar(() => { throw new Error('fallo síncrono inesperado'); });
-  const r = await analyzeImage(imagen);
+test('analiza la imagen y devuelve el análisis del worker', async () => {
+  const r = await visionService.analyzeImage('/tmp/foto.jpg');
+  assert.deepEqual(r, { ok: true, analisis: ANALISIS_OK });
+  assert.equal(creados[0].mensajes[0].width, 224);
+  assert.equal(creados[0].mensajes[0].pixeles.length, 224 * 224 * 3);
+});
+
+test('REUTILIZA el mismo worker entre análisis (no se recarga el modelo por reporte)', async () => {
+  await visionService.analyzeImage('/tmp/a.jpg');
+  await visionService.analyzeImage('/tmp/b.jpg');
+  await visionService.analyzeImage('/tmp/c.jpg');
+  assert.equal(creados.length, 1);
+  assert.equal(creados[0].mensajes.length, 3);
+  assert.equal(creados[0].terminado, false);
+});
+
+test('el worker es unref(): no impide que el proceso (o node --test) termine', async () => {
+  await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(creados[0].unrefLlamado, true);
+});
+
+test('los análisis concurrentes se ejecutan en serie (un solo análisis a la vez en el worker)', async () => {
+  let enVuelo = 0;
+  let maximo = 0;
+  instalar((m, w) => {
+    enVuelo += 1; maximo = Math.max(maximo, enVuelo);
+    setTimeout(() => { enVuelo -= 1; w.emit('message', { id: m.id, ok: true, analisis: ANALISIS_OK }); }, 10);
+  });
+  const resultados = await Promise.all([1, 2, 3, 4].map((n) => visionService.analyzeImage(`/tmp/${n}.jpg`)));
+  assert.ok(resultados.every((r) => r.ok));
+  assert.equal(maximo, 1);
+});
+
+test('timeout: VISION_TIMEOUT, el worker colgado se termina y el siguiente análisis usa uno nuevo', async () => {
+  process.env.VISION_TIMEOUT_MS = '40';
+  let colgar = true;
+  instalar((m, w) => { if (!colgar) responde()(m, w); });
+  const r1 = await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(r1.error_code, 'VISION_TIMEOUT');
+  assert.equal(creados[0].terminado, true);
+  assert.equal(visionService._estado().hayWorker, false);
+
+  colgar = false;
+  const r2 = await visionService.analyzeImage('/tmp/b.jpg');
+  assert.equal(r2.ok, true);
+  assert.equal(creados.length, 2);
+});
+
+test('si sharp tarda más que el timeout NO se crea un worker huérfano', async () => {
+  process.env.VISION_TIMEOUT_MS = '30';
+  instalar(responde(), () => new Promise((resolver) => setTimeout(() => resolver(PIXELES), 120)));
+  const r = await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(r.error_code, 'VISION_TIMEOUT');
+  await espera(200); // sharp "termina" después: no debe nacer ningún worker
+  assert.equal(creados.length, 0);
+});
+
+test('imagen corrupta (sharp falla): VISION_PREPROCESO_FALLO y no se toca el worker', async () => {
+  instalar(responde(), async () => { throw new Error('Input buffer contains unsupported image format'); });
+  const r = await visionService.analyzeImage('/tmp/rota.jpg');
   assert.equal(r.ok, false);
-  assert.equal(r.error_code, 'VISION_ERROR_DESCONOCIDO');
-  assert.equal((await analyzeImage(undefined)).ok, false);
+  assert.equal(r.error_code, 'VISION_PREPROCESO_FALLO');
+  assert.equal(creados.length, 0);
+});
+
+test('un preprocesador que lanza de forma síncrona tampoco rompe la promesa', async () => {
+  instalar(responde(), () => { throw new Error('boom'); });
+  const r = await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(r.error_code, 'VISION_PREPROCESO_FALLO');
+});
+
+test('error en la inferencia (ok:false del worker): VISION_WORKER_ERROR y el worker se conserva', async () => {
+  instalar((m, w) => setImmediate(() => w.emit('message', { id: m.id, ok: false, error: 'No se pudo cargar el modelo' })));
+  const r = await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(r.error_code, 'VISION_WORKER_ERROR');
+  assert.equal(creados[0].terminado, false);
+});
+
+test('el hilo emite "error": VISION_WORKER_CAIDO y se descarta', async () => {
+  instalar((m, w) => setImmediate(() => w.emit('error', new Error('OOM'))));
+  const r = await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(r.error_code, 'VISION_WORKER_CAIDO');
+  assert.equal(creados[0].terminado, true);
+});
+
+test('el hilo termina solo (exit) a mitad de análisis: VISION_WORKER_CAIDO sin esperar al timeout', async () => {
+  process.env.VISION_TIMEOUT_MS = '5000';
+  instalar((m, w) => setImmediate(() => w.emit('exit', 1)));
+  const inicio = Date.now();
+  const r = await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(r.error_code, 'VISION_WORKER_CAIDO');
+  assert.ok(Date.now() - inicio < 1000);
+});
+
+test('un "error" mientras el worker está ocioso NO es una excepción no capturada', async () => {
+  await visionService.analyzeImage('/tmp/a.jpg');
+  assert.doesNotThrow(() => creados[0].emit('error', new Error('fallo tardío')));
+});
+
+test('un worker que murió entre análisis se reemplaza automáticamente', async () => {
+  await visionService.analyzeImage('/tmp/a.jpg');
+  creados[0].emit('exit', 1);
+  const r = await visionService.analyzeImage('/tmp/b.jpg');
+  assert.equal(r.ok, true);
+  assert.equal(creados.length, 2);
+});
+
+test('los mensajes de otro análisis (id distinto) se ignoran', async () => {
+  instalar((m, w) => setImmediate(() => {
+    w.emit('message', { id: m.id + 999, ok: true, analisis: { tipo_desperfecto: 'ajeno' } });
+    w.emit('message', { id: m.id, ok: true, analisis: ANALISIS_OK });
+  }));
+  const r = await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(r.analisis.tipo_desperfecto, 'bache');
+});
+
+test('VISION_ENABLED=false: VISION_DESHABILITADA sin preprocesar ni crear worker', async () => {
+  process.env.VISION_ENABLED = 'false';
+  let llamadas = 0;
+  instalar(responde(), async () => { llamadas += 1; return PIXELES; });
+  assert.equal(visionService.visionHabilitada(), false);
+  const r = await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(r.error_code, 'VISION_DESHABILITADA');
+  assert.equal(llamadas, 0);
+  assert.equal(creados.length, 0);
+});
+
+test('cola saturada: VISION_SATURADO en vez de acumular trabajo sin límite', async () => {
+  process.env.VISION_MAX_COLA = '2';
+  instalar((m, w) => setTimeout(() => w.emit('message', { id: m.id, ok: true, analisis: ANALISIS_OK }), 20));
+  const [a, b, c] = await Promise.all([1, 2, 3].map((n) => visionService.analyzeImage(`/tmp/${n}.jpg`)));
+  assert.equal(a.ok, true);
+  assert.equal(b.ok, true);
+  assert.equal(c.error_code, 'VISION_SATURADO');
+  assert.equal(visionService._estado().enCola, 0);
+});
+
+test('precalentar() crea el worker; cerrarVision() lo termina y es idempotente', async () => {
+  assert.equal(visionService.precalentar(), true);
+  assert.equal(creados.length, 1);
+  await visionService.cerrarVision();
+  assert.equal(creados[0].terminado, true);
+  await visionService.cerrarVision();
+  process.env.VISION_ENABLED = 'false';
+  assert.equal(visionService.precalentar(), false);
+});
+
+test('VISION_TIMEOUT_MS inválido usa el valor por defecto (30 s) en lugar de 0 ms', async () => {
+  process.env.VISION_TIMEOUT_MS = 'abc';
+  const r = await visionService.analyzeImage('/tmp/a.jpg');
+  assert.equal(r.ok, true);
 });
