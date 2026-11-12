@@ -71,6 +71,26 @@ function displayValue(value, fallback = "No informado") {
   return value;
 }
 
+// La severidad reportada y la prioridad calculada son conceptos distintos.
+const PRIORITY_RANK = { alta: 0, media: 1, baja: 2 };
+
+const PRIORITY_STYLES = {
+  alta: "bg-red-50 border-red-200 text-red-800",
+  media: "bg-amber-50 border-amber-200 text-amber-800",
+  baja: "bg-emerald-50 border-emerald-200 text-emerald-800",
+};
+
+function PrioridadBadge({ reporte }) {
+  const clave = reporte?.prioridadApi;
+  const clase = PRIORITY_STYLES[clave] || "bg-slate-50 border-slate-200 text-slate-700";
+
+  return (
+    <span className={`inline-flex flex-wrap items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${clase}`}>
+      Prioridad: {reporte?.prioridad || "No informada"}
+      {reporte?.prioridadProvisional && " · provisional"}
+    </span>
+  );
+}
 
 export default function App() {
   const isCitizenRoute =
@@ -97,6 +117,8 @@ export default function App() {
   const [errorReportes, setErrorReportes] = useState("");
 
   const [reloadReportsKey, setReloadReportsKey] = useState(0);
+  const [prioridadFiltro, setPrioridadFiltro] = useState("todas");
+  const [ordenPrioridad, setOrdenPrioridad] = useState("alta_primero");
 
   // Fotografía privada del reporte seleccionado (Blob convertido a URL temporal).
   const [fotoReporteUrl, setFotoReporteUrl] = useState(null);
@@ -220,6 +242,8 @@ export default function App() {
     setReporteSeleccionado(null);
     setErrorReportes("");
     setSeccionActiva("Inicio");
+    setPrioridadFiltro("todas");
+    setOrdenPrioridad("alta_primero");
     setAuthStatus("anonymous");
   }
 
@@ -255,6 +279,13 @@ export default function App() {
         const adaptedReports = mapApiReports(response);
 
         setReportes(adaptedReports);
+
+        // Actualiza prioridad y motivos si el motor terminó mientras el modal estaba abierto.
+        setReporteSeleccionado((actual) => {
+          if (!actual) return null;
+          const reciente = adaptedReports.find((reporte) => reporte.apiId === actual.apiId);
+          return reciente ? { ...actual, ...reciente } : actual;
+        });
 
       } catch (error) {
         if (cancelled) return;
@@ -397,8 +428,21 @@ export default function App() {
   const esSuperadministrador =
     usuario.rol === "superadministrador";
 
-  const tenantLabel = esSuperadministrador
-    ? "Administración global"
+// Nombres institucionales asociados a los ID de PostgreSQL.
+const MUNICIPALIDADES = {
+  1: "Estación Central",
+  2: "La Pintana",
+  3: "El Bosque",
+  4: "Providencia",
+};
+
+const municipalidadNombre =
+  MUNICIPALIDADES[Number(usuario.municipalidad_id)];
+
+const tenantLabel = esSuperadministrador
+  ? "Administración global"
+  : municipalidadNombre
+    ? `Municipalidad de ${municipalidadNombre}`
     : usuario.municipalidad_id != null
       ? `Municipalidad ID ${usuario.municipalidad_id}`
       : "Municipalidad no asignada";
@@ -412,9 +456,41 @@ export default function App() {
   // según el JWT. No se filtra por una comuna seleccionada
   // manualmente en el frontend.
 
-  const reportesFiltrados = reportes;
+  // El filtro opera solo sobre los reportes ya autorizados por el backend.
+  // Los de prioridad no informada siempre quedan después de los calculados.
+  const reportesFiltrados = reportes
+    .filter((reporte) =>
+      prioridadFiltro === "todas" || reporte.prioridadApi === prioridadFiltro
+    )
+    .sort((a, b) => {
+      const prioridadA = PRIORITY_RANK[a.prioridadApi];
+      const prioridadB = PRIORITY_RANK[b.prioridadApi];
+      const sinPrioridadA = prioridadA === undefined;
+      const sinPrioridadB = prioridadB === undefined;
 
+      if (sinPrioridadA !== sinPrioridadB) return sinPrioridadA ? 1 : -1;
+
+      if (!sinPrioridadA && prioridadA !== prioridadB) {
+        return ordenPrioridad === "baja_primero"
+          ? prioridadB - prioridadA
+          : prioridadA - prioridadB;
+      }
+
+      // A igual prioridad, se muestran primero los reportes más recientes.
+      const fechaA = new Date(a.fechaReporte).getTime() || 0;
+      const fechaB = new Date(b.fechaReporte).getTime() || 0;
+      return fechaB - fechaA;
+    });
+
+  // El mapa térmico mantiene todos los reportes del ámbito municipal.
   const reportesConCoordenadas = reportes.filter(
+    (reporte) =>
+      Number.isFinite(reporte.latitud) &&
+      Number.isFinite(reporte.longitud)
+  );
+
+  // El mapa de Inicio respeta el filtro de prioridad visible en esa sección.
+  const reportesFiltradosConCoordenadas = reportesFiltrados.filter(
     (reporte) =>
       Number.isFinite(reporte.latitud) &&
       Number.isFinite(reporte.longitud)
@@ -532,9 +608,14 @@ export default function App() {
                 Bache0 GovTech
               </span>
 
-              <h2 className="text-sm font-bold truncate text-white">
-                {tenantLabel}
-              </h2>
+               <h2
+  className="text-sm font-bold truncate text-white"
+  title={tenantLabel}
+>
+  {esSuperadministrador
+    ? tenantLabel
+    : municipalidadNombre || tenantLabel}
+</h2>
 
             </div>
 
@@ -764,6 +845,47 @@ export default function App() {
           )}
 
 
+          {/* FILTRO Y ORDEN DE PRIORIDAD - SOLO INICIO Y REPORTES */}
+          {(seccionActiva === "Inicio" || seccionActiva === "Reportes") && (
+            <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+              <div className="min-w-[150px]">
+                <label htmlFor="filtro-prioridad" className="mb-1 block text-xs font-semibold text-slate-600">
+                  Filtrar por prioridad
+                </label>
+                <select
+                  id="filtro-prioridad"
+                  value={prioridadFiltro}
+                  onChange={(event) => setPrioridadFiltro(event.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                >
+                  <option value="todas">Todas</option>
+                  <option value="alta">Alta</option>
+                  <option value="media">Media</option>
+                  <option value="baja">Baja</option>
+                </select>
+              </div>
+
+              <div className="min-w-[150px]">
+                <label htmlFor="orden-prioridad" className="mb-1 block text-xs font-semibold text-slate-600">
+                  Orden de prioridad
+                </label>
+                <select
+                  id="orden-prioridad"
+                  value={ordenPrioridad}
+                  onChange={(event) => setOrdenPrioridad(event.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                >
+                  <option value="alta_primero">Alta primero</option>
+                  <option value="baja_primero">Baja primero</option>
+                </select>
+              </div>
+
+              <div className="text-xs text-slate-600 sm:ml-auto">
+                Mostrando <strong>{reportesFiltrados.length}</strong> de <strong>{reportes.length}</strong> reportes cargados
+              </div>
+            </div>
+          )}
+
           {/* ------------------------------------------ */}
           {/* SECCIÓN INICIO */}
           {/* ------------------------------------------ */}
@@ -823,7 +945,9 @@ export default function App() {
                     </h3>
 
                     <p className="text-sm text-slate-500 mt-1">
-                      La API no devolvió reportes para el ámbito de esta sesión.
+                      {reportes.length > 0
+                        ? "No hay reportes que coincidan con el filtro de prioridad."
+                        : "La API no devolvió reportes para el ámbito de esta sesión."}
                     </p>
 
                     <button
@@ -857,10 +981,10 @@ export default function App() {
 
                       <div className="h-[380px] w-full rounded-lg overflow-hidden border border-slate-100">
 
-                        {reportesConCoordenadas.length > 0 ? (
+                        {reportesFiltradosConCoordenadas.length > 0 ? (
 
                           <MapaReportes
-                            reportes={reportesConCoordenadas}
+                            reportes={reportesFiltradosConCoordenadas}
                           />
 
                         ) : (
@@ -998,7 +1122,9 @@ export default function App() {
                   </h3>
 
                   <p className="text-sm text-slate-500 mt-1">
-                    Cuando existan reportes asociados a tu ámbito, aparecerán aquí.
+                    {reportes.length > 0
+                      ? "No hay reportes que coincidan con el filtro de prioridad."
+                      : "Cuando existan reportes asociados a tu ámbito, aparecerán aquí."}
                   </p>
 
                 </div>
@@ -1327,100 +1453,78 @@ export default function App() {
                 </div>
 
 
-                {/* ANÁLISIS DE IA */}
-
-                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex flex-col justify-between">
-
-                  <div>
-
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-blue-900 mb-3 flex items-center gap-1.5">
-
+                {/* PRIORIDAD Y VISIÓN: DATOS REALES SIN PREDICCIONES SIMULADAS */}
+                <section className="rounded-xl border border-blue-100 bg-blue-50/50 p-4" aria-label="Prioridad y análisis de IA">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-blue-900">
                       <Cpu size={15} className="text-blue-700" />
-
-                      Triage y Visión Artificial (IA)
-
+                      Priorización explicable
                     </h4>
+                    <PrioridadBadge reporte={reporteSeleccionado} />
+                  </div>
 
-
-                    {reporteSeleccionado.iaAnalisis ? (
-
-                      <div className="space-y-3 text-sm">
-
-                        <div className="flex justify-between border-b border-blue-100 pb-2">
-
-                          <span className="text-slate-600">
-                            Puntaje de Prioridad:
-                          </span>
-
-                          <span className="font-bold text-slate-800">
-                            {displayValue(
-                              reporteSeleccionado.iaAnalisis.puntajePrioridad
-                            )}
-                          </span>
-
-                        </div>
-
-
-                        <div className="flex justify-between border-b border-blue-100 pb-2">
-
-                          <span className="text-slate-600">
-                            Diámetro Estimado:
-                          </span>
-
-                          <span className="font-semibold text-slate-800">
-                            {displayValue(
-                              reporteSeleccionado.iaAnalisis.diametroEstimado
-                            )}
-                          </span>
-
-                        </div>
-
-
-                        <div className="flex justify-between border-b border-blue-100 pb-2">
-
-                          <span className="text-slate-600">
-                            Profundidad Promedio:
-                          </span>
-
-                          <span className="font-semibold text-slate-800">
-                            {displayValue(
-                              reporteSeleccionado.iaAnalisis.profundidadEstimada
-                            )}
-                          </span>
-
-                        </div>
-
-                      </div>
-
-                    ) : (
-
-                      <div className="bg-white border border-blue-100 rounded-lg p-4">
-
-                        <p className="text-sm text-slate-600">
-                          No existe un análisis de visión artificial disponible para este reporte.
+                  <div className="space-y-2 rounded-lg border border-blue-100 bg-white p-3 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-slate-600">Puntaje de reglas</span>
+                      <strong className="text-slate-800">
+                        {displayValue(reporteSeleccionado.puntajePrioridad, "Pendiente")}
+                      </strong>
+                    </div>
+                    {reporteSeleccionado.versionReglas && (
+                      <p className="text-xs text-slate-500">
+                        Versión del motor: {reporteSeleccionado.versionReglas}
+                      </p>
+                    )}
+                    {reporteSeleccionado.prioridadProvisional && (
+                      <p role="status" className="text-xs font-medium text-amber-800">
+                        Prioridad provisional: el análisis todavía puede modificarla.
+                      </p>
+                    )}
+                    {reporteSeleccionado.prioridadProvisional &&
+                      reporteSeleccionado.rangoPosiblePrioridad && (
+                        <p className="text-xs text-slate-600">
+                          Rango posible: {displayValue(reporteSeleccionado.rangoPosiblePrioridad.min)}
+                          {" – "}
+                          {displayValue(reporteSeleccionado.rangoPosiblePrioridad.max)}
                         </p>
-
+                      )}
+                    {reporteSeleccionado.explicacionesPrioridad?.length > 0 ? (
+                      <div className="border-t border-blue-100 pt-2">
+                        <p className="mb-1 font-semibold text-slate-700">Motivos del cálculo</p>
+                        <ul className="list-inside list-disc space-y-1 text-slate-600">
+                          {reporteSeleccionado.explicacionesPrioridad.map((texto, index) => (
+                            <li key={`${index}-${texto}`}>{texto}</li>
+                          ))}
+                        </ul>
                       </div>
-
+                    ) : (
+                      <p className="border-t border-blue-100 pt-2 text-xs text-slate-500">
+                        El reporte todavía no incluye explicaciones de prioridad.
+                      </p>
                     )}
-
+                    {reporteSeleccionado.datosNoDisponibles?.length > 0 && (
+                      <p className="text-xs text-slate-500">
+                        Datos no disponibles: {reporteSeleccionado.datosNoDisponibles
+                          .map((factor) => factor.replaceAll("_", " "))
+                          .join(", ")}.
+                      </p>
+                    )}
+                    {reporteSeleccionado.advertenciasPrioridad?.map((texto, index) => (
+                      <p key={`${index}-${texto}`} className="text-xs text-amber-800">
+                        {texto}
+                      </p>
+                    ))}
                   </div>
 
-
-                  <div className="mt-4 bg-white p-3 rounded-lg border border-blue-200 text-xs text-slate-700">
-
-                    <strong className="text-blue-900 block mb-1">
-                      Diagnóstico:
-                    </strong>
-
-                    {displayValue(
-                      reporteSeleccionado.iaAnalisis?.recomendacion,
-                      "Sin diagnóstico de IA disponible."
-                    )}
-
+                  <div className="mt-3 rounded-lg border border-blue-100 bg-white p-3 text-sm">
+                    <h5 className="font-semibold text-blue-900">Visión artificial (TensorFlow.js)</h5>
+                    <p className="mt-1 text-xs text-slate-600">
+                      La consulta de análisis de fotografía se conectará cuando esté
+                      integrado el endpoint de visión del backend. No se muestran
+                      estimaciones simuladas de diámetro o profundidad.
+                    </p>
                   </div>
-
-                </div>
+                </section>
 
               </div>
 
