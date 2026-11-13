@@ -8,6 +8,7 @@ const userService = require('../services/userService');
 /** POST /api/v1/usuarios */
 async function createUser(req, res) {
   const user = await userService.createUser(req.user, req.body);
+  if (user?.id != null) res.location(`/api/v1/usuarios/${user.id}`);
   res.status(201).json({ data: user });
 }
 

@@ -61,7 +61,15 @@ function fromKnownLibraryError(err) {
     };
   }
 
-  // Errores de multer al subir fotografías.
+  // Cuerpo JSON demasiado grande (body-parser).
+  if (err && err.type === 'entity.too.large') {
+    return {
+      status: 413,
+      message: 'El cuerpo de la solicitud supera el tamaño máximo permitido.',
+    };
+  }
+
+  // Errores de multer al subir fotografías (la ruta de reportes ya los traduce; esto es la red de seguridad).
   if (err && err.name === 'MulterError') {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return {
@@ -145,7 +153,8 @@ function errorHandler(err, req, res, next) {
     return next(err);
   }
 
-  const requestId = uuidv4();
+  // Mismo identificador que usa la auditoría (req.requestId, asignado en app.js).
+  const requestId = req.requestId || uuidv4();
   const { status, code, message, details } = normalizeError(err);
 
   // No registrar el cuerpo de la solicitud: podría contener datos sensibles.

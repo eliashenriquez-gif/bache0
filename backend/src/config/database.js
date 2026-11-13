@@ -4,8 +4,11 @@ import dotenv from 'dotenv';
 import pg from 'pg';
 
 const { Pool } = pg;
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../');
-dotenv.config({ path: path.join(projectRoot, '.env') });
+const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../');
+const projectRoot = path.resolve(backendRoot, '../');
+// Mismo orden que app.js: backend/.env primero, luego el .env de la raíz (dotenv no pisa lo ya definido).
+dotenv.config({ path: path.join(backendRoot, '.env'), quiet: true });
+dotenv.config({ path: path.join(projectRoot, '.env'), quiet: true });
 
 function integerEnv(value, fallback, name, min, max) {
   if (value == null || value === '') return fallback;

@@ -1,0 +1,480 @@
+{
+  "info": {
+    "name": "Bache 0 - Hito 3 (Reportes, Visión IA y Auth)",
+    "description": "Colección completa para el Hito 3 de Bache 0.\n\nIncluye: Autenticación, Usuarios, Health Check, Reportes Ciudadanos (con subida de fotos), Aislamiento Municipal y Visión Artificial (TensorFlow local).\n\n1. Levanta el servidor con `npm start`.\n2. Asegúrate de configurar la variable `superadmin_password`.\n3. Ejecuta la colección en orden.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Health Check (P0)",
+      "item": [
+        {
+          "name": "0.1 Verificar salud del servidor",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test(\"Contiene status ok\", () => { pm.expect(pm.response.json().status).to.equal(\"ok\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Autenticación (superadministrador)",
+      "item": [
+        {
+          "name": "1.1 Login superadmin (guarda el token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superadmin_email}}\",\n  \"password\": \"{{superadmin_password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"run_id\", String(Date.now()));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.test(\"Guarda superadmin_token\", () => { pm.collectionVariables.set(\"superadmin_token\", pm.response.json().data.access_token); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Superadministrador crea cuentas municipales",
+      "item": [
+        {
+          "name": "2.1 Crear administrador municipal (muni A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Admin Muni A\",\n  \"email\": \"adminA.{{run_id}}@munia.test\",\n  \"password\": \"{{admin_password}}\",\n  \"rol\": \"administrador_municipal\",\n  \"municipalidad_id\": {{municipalidad_a_id}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => { pm.expect(pm.response.code).to.equal(201); });",
+                  "pm.collectionVariables.set(\"admin_id\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Crear administrador municipal (muni B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Admin Muni B\",\n  \"email\": \"adminB.{{run_id}}@munib.test\",\n  \"password\": \"{{admin_password}}\",\n  \"rol\": \"administrador_municipal\",\n  \"municipalidad_id\": {{municipalidad_b_id}}\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Administrador municipal: login",
+      "item": [
+        {
+          "name": "3.1 Login administrador (muni A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"adminA.{{run_id}}@munia.test\",\n  \"password\": \"{{admin_password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => { pm.expect(pm.response.code).to.equal(200); });",
+                  "pm.collectionVariables.set(\"admin_token\", pm.response.json().data.access_token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Reportes y Visión IA (Hito 3)",
+      "item": [
+        {
+          "name": "9.1 Ciudadano crea reporte (POST multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitud",
+                  "value": "-33.456",
+                  "type": "text"
+                },
+                {
+                  "key": "longitud",
+                  "value": "-70.648",
+                  "type": "text"
+                },
+                {
+                  "key": "metodo_ubicacion",
+                  "value": "gps",
+                  "type": "text"
+                },
+                {
+                  "key": "ubicacion_confirmada",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "severidad",
+                  "value": "alta",
+                  "type": "text"
+                },
+                {
+                  "key": "concurrencia_vial",
+                  "value": "media",
+                  "type": "text"
+                },
+                {
+                  "key": "infraestructura_critica",
+                  "value": "ninguna",
+                  "type": "text"
+                },
+                {
+                  "key": "descripcion",
+                  "value": "Bache enorme reportado vía Postman",
+                  "type": "text"
+                },
+                {
+                  "key": "foto",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => { pm.expect(pm.response.code).to.equal(201); });",
+                  "pm.test(\"Guarda ID del reporte\", () => { pm.collectionVariables.set(\"reporte_id\", pm.response.json().data.id); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9.2 Listar reportes (Admin Muni A)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => { pm.expect(pm.response.code).to.equal(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9.3 Ver Foto Protegida del Reporte",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_id}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_id}}",
+                "foto"
+              ]
+            }
+          }
+        },
+        {
+          "name": "9.4 Consultar Análisis Visión IA (GET)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_id}}/analisis-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_id}}",
+                "analisis-vision"
+              ]
+            }
+          }
+        },
+        {
+          "name": "9.5 Solicitar Reproceso Visión (POST asíncrono)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_id}}/analisis-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_id}}",
+                "analisis-vision"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 202 Accepted\", () => { pm.expect(pm.response.code).to.equal(202); });",
+                  "pm.test(\"Devuelve Location en Header\", () => { pm.expect(pm.response.headers.has(\"Location\")).to.be.true; });",
+                  "pm.collectionVariables.set(\"analisis_id\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9.6 Obtener Análisis Específico por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/analisis-vision/{{analisis_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analisis-vision",
+                "{{analisis_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "superadmin_email",
+      "value": "admin@bache0.cl"
+    },
+    {
+      "key": "superadmin_password",
+      "value": "PON_AQUI_LA_CONTRASENA_DEL_SEED"
+    },
+    {
+      "key": "admin_password",
+      "value": "ClaveInicial-Admin7-2026"
+    },
+    {
+      "key": "run_id",
+      "value": "1"
+    },
+    {
+      "key": "superadmin_token",
+      "value": ""
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "admin_id",
+      "value": ""
+    },
+    {
+      "key": "municipalidad_a_id",
+      "value": "7"
+    },
+    {
+      "key": "municipalidad_b_id",
+      "value": "9"
+    },
+    {
+      "key": "reporte_id",
+      "value": ""
+    },
+    {
+      "key": "analisis_id",
+      "value": ""
+    }
+  ]
+}
