@@ -1,0 +1,3421 @@
+{
+  "info": {
+    "_postman_id": "503cd94b-4e26-4229-b17d-4cc4ae690503",
+    "name": "Bache0 - Hito 3 - Pruebas Finales",
+    "description": "Colección consolidada Bache0 Hito 3: 10 carpetas, 73 solicitudes, 5 logins, autenticación, aislamiento por municipalidad, roles, fotografías, visión artificial, reportes, persistencia, cobertura y validaciones. Usa la plantilla de entorno sin credenciales y una API local preparada. Las carpetas 07 y 09 requieren preparación manual de archivos; no ejecutar toda la colección con Runner. Los IDs 1/2/3 y la disponibilidad de cuentas corresponden a la base de datos de demostración. Las imágenes de prueba no representan incidentes reales.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "60048714"
+  },
+  "item": [
+    {
+      "name": "00 - Estado y autenticacion",
+      "item": [
+        {
+          "name": "00.1 - Health 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado ok\", () => pm.expect(pm.response.json().status).to.eql(\"ok\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "00.2 - Sin JWT 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Error AUTHENTICATION_REQUIRED y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"AUTHENTICATION_REQUIRED\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "00.3 - JWT inventado 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Error AUTHENTICATION_REQUIRED y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"AUTHENTICATION_REQUIRED\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "token-invalido-de-prueba",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "00.4 - Perfil SA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Perfil SA: rol y ambito\", () => { const d=pm.response.json().data; pm.expect(d.rol).to.eql(\"superadministrador\"); pm.expect(d.municipalidad_id).to.be.oneOf([null, undefined]); pm.expect(d.password_hash).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_superadmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "00.4 - Perfil EC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Perfil EC: rol y ambito\", () => { const d=pm.response.json().data; pm.expect(d.rol).to.eql(\"administrador_municipal\"); pm.expect(Number(d.municipalidad_id)).to.eql(1); pm.expect(d.password_hash).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "00.4 - Perfil LP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Perfil LP: rol y ambito\", () => { const d=pm.response.json().data; pm.expect(d.rol).to.eql(\"administrador_municipal\"); pm.expect(Number(d.municipalidad_id)).to.eql(2); pm.expect(d.password_hash).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_lp}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "00.4 - Perfil EB",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Perfil EB: rol y ambito\", () => { const d=pm.response.json().data; pm.expect(d.rol).to.eql(\"administrador_municipal\"); pm.expect(Number(d.municipalidad_id)).to.eql(3); pm.expect(d.password_hash).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_eb}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Superadmin - Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();\r\n\r\nconst token = body.access_token ?? body.data?.access_token;\r\n\r\npm.test(\"AUTH-SA-01: Login devuelve HTTP 200\", () => {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"AUTH-SA-02: Recibe token JWT\", () => {\r\n  pm.expect(token).to.be.a(\"string\").and.not.empty;\r\n});\r\n\r\nif (\r\n  pm.response.code === 200 &&\r\n  typeof token === \"string\" &&\r\n  token.length > 0\r\n) {\r\n  pm.environment.set(\"token_superadmin\", token);\r\n} else {\r\n  pm.environment.unset(\"token_superadmin\");\r\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{email_superadmin}}\",\r\n  \"password\": \"{{password_superadmin}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - La Pintana",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\r\nconst body = pm.response.json();\r\n\r\nconst token = body.access_token ?? body.data?.access_token;\r\n\r\npm.test(\"AUTH-LP-01: Login devuelve HTTP 200\", () => {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"AUTH-LP-02: Recibe token JWT\", () => {\r\n  pm.expect(token).to.be.a(\"string\").and.not.empty;\r\n});\r\n\r\nif (pm.response.code === 200 && typeof token === \"string\" && token.length > 0) {\r\n  pm.environment.set(\"token_lp\", token);\r\n} else {\r\n  pm.environment.unset(\"token_lp\");\r\n}\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{email_lp}}\",\r\n  \"password\": \"{{password_lp}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Estación Central",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();\r\n\r\nconst token = body.access_token ?? body.data?.access_token;\r\n\r\npm.test(\"AUTH-EC-01: Login devuelve HTTP 200\", () => {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"AUTH-EC-02: Recibe token JWT\", () => {\r\n  pm.expect(token).to.be.a(\"string\").and.not.empty;\r\n});\r\n\r\nif (pm.response.code === 200 && typeof token === \"string\") {\r\n  pm.environment.set(\"token_ec\", token);\r\n} else {\r\n  pm.environment.unset(\"token_ec\");\r\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{email_ec}}\",\r\n  \"password\": \"{{password_ec}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - El Bosque",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\r\nconst body = pm.response.json();\r\n\r\nconst token = body.access_token ?? body.data?.access_token;\r\n\r\npm.test(\"AUTH-EB-01: Login devuelve HTTP 200\", () => {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"AUTH-EB-02: Recibe token JWT\", () => {\r\n  pm.expect(token).to.be.a(\"string\").and.not.empty;\r\n});\r\n\r\nif (pm.response.code === 200 && typeof token === \"string\" && token.length > 0) {\r\n  pm.environment.set(\"token_eb\", token);\r\n} else {\r\n  pm.environment.unset(\"token_eb\");\r\n}\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{email_eb}}\",\r\n  \"password\": \"{{password_eb}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Inspector EC.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();\r\nconst token = body.data?.access_token ?? body.data?.token ?? body.access_token ?? body.token;\r\n\r\npm.test(\"INS-AUTH-01: Login HTTP 200\", () => {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"INS-AUTH-02: Recibe JWT\", () => {\r\n  pm.expect(token).to.be.a(\"string\").and.not.empty;\r\n});\r\n\r\nif (pm.response.code === 200 && typeof token === \"string\" && token.length > 0) {\r\n  pm.environment.set(\"token_ins_ec\", token);\r\n  pm.environment.set(\"token_inspector\", token);\r\n  pm.environment.set(\"inspector_municipalidad_id\", \"1\");\r\n} else {\r\n  pm.environment.unset(\"token_ins_ec\");\r\n  pm.environment.unset(\"token_inspector\");\r\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{email_ins_ec}}\",\r\n  \"password\": \"{{password_ins_ec}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Estado de API, JWT, perfiles y cinco inicios de sesión. Los login actualizan variables de entorno; no crean usuarios."
+    },
+    {
+      "name": "01 - Listados positivos",
+      "item": [
+        {
+          "name": "01 - Listar reportes EC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo datos municipio 1\", () => {const b=pm.response.json(); pm.expect(b.data).to.be.an(\"array\").and.not.empty; b.data.forEach(r=>pm.expect(Number(r.municipalidad_id)).to.eql(1)); pm.expect(b.pagination.total).to.be.at.least(b.data.length);});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "01 - Listar reportes LP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo datos municipio 2\", () => {const b=pm.response.json(); pm.expect(b.data).to.be.an(\"array\").and.not.empty; b.data.forEach(r=>pm.expect(Number(r.municipalidad_id)).to.eql(2)); pm.expect(b.pagination.total).to.be.at.least(b.data.length);});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_lp}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "01 - Listar reportes EB",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo datos municipio 3\", () => {const b=pm.response.json(); pm.expect(b.data).to.be.an(\"array\").and.not.empty; b.data.forEach(r=>pm.expect(Number(r.municipalidad_id)).to.eql(3)); pm.expect(b.pagination.total).to.be.at.least(b.data.length);});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_eb}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Superadmin ve las tres comunas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Superadmin ve 1, 2 y 3\", () => {const b=pm.response.json(); pm.expect(b.data).to.be.an(\"array\"); const ids=[...new Set(b.data.map(r=>Number(r.municipalidad_id)))]; [1,2,3].forEach(id=>pm.expect(ids).to.include(id));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_superadmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Listados ya comprobados por el usuario; aquí repetibles con tests de contenido y paginación."
+    },
+    {
+      "name": "02 - Aislamiento por ID y filtros",
+      "item": [
+        {
+          "name": "02.1 - EC ve SU reporte",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Detalle de municipio 1\", () => pm.expect(Number(pm.response.json().data.municipalidad_id)).to.eql(1));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.1 - LP ve SU reporte",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Detalle de municipio 2\", () => pm.expect(Number(pm.response.json().data.municipalidad_id)).to.eql(2));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_lp}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_lp}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_lp}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.1 - EB ve SU reporte",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Detalle de municipio 3\", () => pm.expect(Number(pm.response.json().data.municipalidad_id)).to.eql(3));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_eb}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_eb}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_eb}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.2 - EC NO ve reporte ajeno id_lp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_lp}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_lp}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.2 - EC NO ve reporte ajeno id_eb",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_eb}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_eb}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.2 - LP NO ve reporte ajeno id_ec",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_lp}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.2 - EB NO ve reporte ajeno id_ec",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_eb}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.3 - EC filtra comuna ajena -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error FORBIDDEN y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FORBIDDEN\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?municipalidad_id=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.3 - LP filtra comuna ajena -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error FORBIDDEN y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FORBIDDEN\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_lp}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?municipalidad_id=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.3 - EB filtra comuna ajena -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error FORBIDDEN y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FORBIDDEN\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_eb}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?municipalidad_id=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.4 - Superadmin filtra municipio 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Filtro SA solo 1\",()=>{const b=pm.response.json();pm.expect(b.data).to.be.an(\"array\").and.not.empty; b.data.forEach(r=>pm.expect(Number(r.municipalidad_id)).to.eql(1));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_superadmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?municipalidad_id=1&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.4 - Superadmin filtra municipio 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Filtro SA solo 2\",()=>{const b=pm.response.json();pm.expect(b.data).to.be.an(\"array\").and.not.empty; b.data.forEach(r=>pm.expect(Number(r.municipalidad_id)).to.eql(2));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_superadmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?municipalidad_id=2&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "2"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.4 - Superadmin filtra municipio 3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Filtro SA solo 3\",()=>{const b=pm.response.json();pm.expect(b.data).to.be.an(\"array\").and.not.empty; b.data.forEach(r=>pm.expect(Number(r.municipalidad_id)).to.eql(3));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_superadmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?municipalidad_id=3&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "3"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.5 - ID reporte malformado -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error VALIDATION_ERROR y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"VALIDATION_ERROR\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/no-es-un-id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "no-es-un-id"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "No hay escrituras. Confirma que conocer un ID ajeno no permite acceder y que filtros prohibidos retornan 403."
+    },
+    {
+      "name": "03 - Fotografias privadas",
+      "item": [
+        {
+          "name": "03.1 - Foto propia/autorizada EC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Foto real y privada\",()=>{const h=pm.response.headers.get(\"Content-Type\")||\"\";pm.expect(h).to.match(/^image\\/(jpeg|png|webp)/);pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"private\");});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}",
+                "foto"
+              ]
+            },
+            "description": "Requiere que la foto semilla exista realmente en el directorio de almacenamiento local."
+          },
+          "response": []
+        },
+        {
+          "name": "03.1 - Foto propia/autorizada LP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Foto real y privada\",()=>{const h=pm.response.headers.get(\"Content-Type\")||\"\";pm.expect(h).to.match(/^image\\/(jpeg|png|webp)/);pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"private\");});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_lp}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_lp}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_lp}}",
+                "foto"
+              ]
+            },
+            "description": "Requiere que la foto semilla exista realmente en el directorio de almacenamiento local."
+          },
+          "response": []
+        },
+        {
+          "name": "03.1 - Foto propia/autorizada EB",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Foto real y privada\",()=>{const h=pm.response.headers.get(\"Content-Type\")||\"\";pm.expect(h).to.match(/^image\\/(jpeg|png|webp)/);pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"private\");});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_eb}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_eb}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_eb}}",
+                "foto"
+              ]
+            },
+            "description": "Requiere que la foto semilla exista realmente en el directorio de almacenamiento local."
+          },
+          "response": []
+        },
+        {
+          "name": "03.1 - Foto propia/autorizada SA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Foto real y privada\",()=>{const h=pm.response.headers.get(\"Content-Type\")||\"\";pm.expect(h).to.match(/^image\\/(jpeg|png|webp)/);pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"private\");});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_superadmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_eb}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_eb}}",
+                "foto"
+              ]
+            },
+            "description": "Requiere que la foto semilla exista realmente en el directorio de almacenamiento local."
+          },
+          "response": []
+        },
+        {
+          "name": "03.2 - Foto AJENA EC -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_lp}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_lp}}",
+                "foto"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03.2 - Foto AJENA LP -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_lp}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_eb}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_eb}}",
+                "foto"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03.2 - Foto AJENA EB -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_eb}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}",
+                "foto"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03.3 - Foto sin JWT -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Error AUTHENTICATION_REQUIRED y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"AUTHENTICATION_REQUIRED\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}/foto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}",
+                "foto"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "No crea archivos. Exige MIME de imagen para acceso permitido, 404 para otras comunas y 401 sin sesión."
+    },
+    {
+      "name": "04 - Usuarios y roles",
+      "item": [
+        {
+          "name": "04.1 - Superadmin lista usuarios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Usuarios y paginacion\",()=>{const b=pm.response.json();pm.expect(b.data).to.be.an(\"array\").and.not.empty;pm.expect(b.pagination.total).to.be.a(\"number\");});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_superadmin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.2 - EC lista usuarios propios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo usuarios municipio 1\",()=>{const d=pm.response.json().data;pm.expect(d).to.be.an(\"array\");d.forEach(u=>pm.expect(Number(u.municipalidad_id)).to.eql(1));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.2 - LP lista usuarios propios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo usuarios municipio 2\",()=>{const d=pm.response.json().data;pm.expect(d).to.be.an(\"array\");d.forEach(u=>pm.expect(Number(u.municipalidad_id)).to.eql(2));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_lp}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.2 - EB lista usuarios propios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo usuarios municipio 3\",()=>{const d=pm.response.json().data;pm.expect(d).to.be.an(\"array\");d.forEach(u=>pm.expect(Number(u.municipalidad_id)).to.eql(3));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_eb}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.3 - EC intenta listar usuarios ajenos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error FORBIDDEN y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FORBIDDEN\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?municipalidad_id=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.3 - LP intenta listar usuarios ajenos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error FORBIDDEN y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FORBIDDEN\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_lp}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?municipalidad_id=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.3 - EB intenta listar usuarios ajenos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error FORBIDDEN y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FORBIDDEN\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_eb}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?municipalidad_id=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "municipalidad_id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Listar usuarios por ámbito y bloquear filtrado cruzado. No crea ni edita cuentas."
+    },
+    {
+      "name": "05 - Negativas y validacion",
+      "item": [
+        {
+          "name": "05.1 - Reportes page=0 -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error VALIDATION_ERROR y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"VALIDATION_ERROR\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?page=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05.2 - Reportes limit=101 -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error VALIDATION_ERROR y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"VALIDATION_ERROR\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?limit=101",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "101"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05.3 - Estado de filtro desconocido -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error VALIDATION_ERROR y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"VALIDATION_ERROR\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?estado=desconocido",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "desconocido"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05.4 - PATCH estado sin body -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error VALIDATION_ERROR y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"VALIDATION_ERROR\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}",
+                "estado"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05.5 - PATCH modificar estado AJENO -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"en_revision\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_lp}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_lp}}",
+                "estado"
+              ]
+            },
+            "description": "Debe fallar; no modifica el reporte de La Pintana."
+          },
+          "response": []
+        },
+        {
+          "name": "05.6 - PUT severidad invalida -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error VALIDATION_ERROR y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"VALIDATION_ERROR\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"severidad\": \"imposible\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05.7 - DELETE reporte AJENO -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_lp}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_lp}}"
+              ]
+            },
+            "description": "Pese a ser DELETE, el servidor debe rechazarlo antes de modificar el reporte. Reconfirmar ID de comuna."
+          },
+          "response": []
+        }
+      ],
+      "description": "Casos inválidos de solo lectura y modificaciones que el backend debe rechazar sin alterar datos."
+    },
+    {
+      "name": "06 - Vision artificial (lectura y rechazo)",
+      "item": [
+        {
+          "name": "06.1 - Consultar analisis de reporte EC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Lista analisis (incluso vacia)\",()=>pm.expect(pm.response.json().data).to.be.an(\"array\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}/analisis-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}",
+                "analisis-vision"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06.2 - Analisis ajeno EC->LP -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_lp}}/analisis-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_lp}}",
+                "analisis-vision"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06.3 - Analisis sin JWT -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Error AUTHENTICATION_REQUIRED y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"AUTHENTICATION_REQUIRED\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}/analisis-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}",
+                "analisis-vision"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06.4 - Reproceso AJENO EC->LP -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error NOT_FOUND y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"NOT_FOUND\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_lp}}/analisis-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_lp}}",
+                "analisis-vision"
+              ]
+            },
+            "description": "Debe ser rechazado: no genera trabajo de IA ni inserta una fila."
+          },
+          "response": []
+        }
+      ],
+      "description": "Las filas de analisis pueden estar vacias en reportes viejos. Reproceso solo después de crear el reporte de prueba."
+    },
+    {
+      "name": "07 - MANUAL - Reporte de prueba y persistencia",
+      "item": [
+        {
+          "name": "07.1 - Crear UN reporte ficticio con foto (manual)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Guarda ID de prueba\",()=>{const d=pm.response.json().data;pm.expect(d.id).to.be.a(\"number\");pm.collectionVariables.set(\"reporte_prueba_id\",String(d.id));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitud",
+                  "type": "text",
+                  "value": "-33.4602"
+                },
+                {
+                  "key": "longitud",
+                  "type": "text",
+                  "value": "-70.6981"
+                },
+                {
+                  "key": "metodo_ubicacion",
+                  "type": "text",
+                  "value": "pin_manual"
+                },
+                {
+                  "key": "ubicacion_confirmada",
+                  "type": "text",
+                  "value": "true"
+                },
+                {
+                  "key": "severidad",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "concurrencia_vial",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "infraestructura_critica",
+                  "type": "text",
+                  "value": "ninguna"
+                },
+                {
+                  "key": "descripcion",
+                  "type": "text",
+                  "value": "PRUEBA POSTMAN BACHE0 - FICTICIO - NO ES UN REPORTE REAL"
+                },
+                {
+                  "description": "Elegir manualmente backend/var/storage/reports/seed/demo-report-001.png en Postman antes de Send.",
+                  "key": "foto",
+                  "type": "file",
+                  "value": null
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "description": "Antes de enviar: seleccionar archivo en foto. Genera un nuevo reporte ficticio Estación Central, ejecuta IA asíncrona. No repetir innecesariamente."
+          },
+          "response": []
+        },
+        {
+          "name": "07.2 - Ver reporte creado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Reporte creado y de EC\",()=>{const d=pm.response.json().data;pm.expect(String(d.id)).to.eql(pm.collectionVariables.get(\"reporte_prueba_id\"));pm.expect(Number(d.municipalidad_id)).to.eql(1);});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_prueba_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_prueba_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07.3 - Cambiar estado a en_revision",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado cambiado\",()=>pm.expect(pm.response.json().data.estado).to.eql(\"en_revision\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"en_revision\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_prueba_id}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_prueba_id}}",
+                "estado"
+              ]
+            },
+            "description": "Cambiar solo el reporte ficticio. Dejar evidencia de auditoría."
+          },
+          "response": []
+        },
+        {
+          "name": "07.4 - Releer y confirmar persistencia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Persiste en_revision\",()=>pm.expect(pm.response.json().data.estado).to.eql(\"en_revision\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_prueba_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_prueba_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07.5 - Consultar analisis IA del reporte nuevo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Analisis creado (puede estar pendiente)\",()=>{const d=pm.response.json().data;pm.expect(d).to.be.an(\"array\").and.not.empty;d.forEach(x=>{pm.expect(x.estado).to.be.oneOf([\"pendiente\",\"procesando\",\"completado\",\"fallido\"]);});});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_prueba_id}}/analisis-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_prueba_id}}",
+                "analisis-vision"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07.6 - Ver prioridad y motivos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Prioridad explicable disponible\",()=>{const d=pm.response.json().data;pm.expect(d.prioridad).to.be.oneOf([\"baja\",\"media\",\"alta\"]);pm.expect(d.motivos).to.be.an(\"array\");pm.expect(d.version_reglas).to.be.a(\"string\");});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_prueba_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_prueba_id}}"
+              ]
+            },
+            "description": "Puede requerir recargar al cabo de unos segundos. No afirmar +1 de IA sin verificar motivos reales."
+          },
+          "response": []
+        },
+        {
+          "name": "07.7 - Reprocesar IA solo si es necesario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 202\", () => pm.response.to.have.status(202));",
+                  "pm.test(\"Reproceso aceptado y guarda analisis_id\",()=>{const d=pm.response.json().data;pm.expect(d.id).to.exist;pm.collectionVariables.set(\"analisis_prueba_id\",String(d.id));pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/analisis-vision/\");});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_prueba_id}}/analisis-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_prueba_id}}",
+                "analisis-vision"
+              ]
+            },
+            "description": "EJECUTAR SOLO SI SE NECESITA REPROCESAR; si existe un análisis reciente pendiente puede responder 409. No ejecutar por rutina."
+          },
+          "response": []
+        },
+        {
+          "name": "07.8 - Consultar analisis por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Analisis corresponde al reporte\",()=>{const d=pm.response.json().data;pm.expect(String(d.id)).to.eql(pm.collectionVariables.get(\"analisis_prueba_id\"));pm.expect(String(d.reporte_id)).to.eql(pm.collectionVariables.get(\"reporte_prueba_id\"));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ec}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/analisis-vision/{{analisis_prueba_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analisis-vision",
+                "{{analisis_prueba_id}}"
+              ]
+            },
+            "description": "Solo después de ejecutar 07.7 y contar con analisis_prueba_id."
+          },
+          "response": []
+        }
+      ],
+      "description": "ESTA CARPETA SI ESCRIBE EN BD. Ejecutar una sola vez, en orden y solo en entorno local de pruebas. NO usar el runner de colección completa."
+    },
+    {
+      "name": "08 - OPCIONAL - Inspector",
+      "item": [
+        {
+          "name": "08.1 - Perfil inspector",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Rol inspector\",()=>pm.expect(pm.response.json().data.rol).to.eql(\"inspector\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_inspector}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08.2 - Inspector lista reportes de su comuna",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo reportes de su municipio\",()=>{const mid=Number(pm.environment.get(\"inspector_municipalidad_id\"));pm.expect(mid).to.be.above(0);const d=pm.response.json().data;pm.expect(d).to.be.an(\"array\");d.forEach(r=>pm.expect(Number(r.municipalidad_id)).to.eql(mid));});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_inspector}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08.3 - Inspector NO lista usuarios -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error FORBIDDEN y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FORBIDDEN\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_inspector}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08.4 - Inspector NO edita severidad -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error FORBIDDEN y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FORBIDDEN\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_inspector}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"severidad\": \"alta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}"
+              ]
+            },
+            "description": "El endpoint exige administrador municipal o superadmin antes de modificar registros."
+          },
+          "response": []
+        },
+        {
+          "name": "08.5 - Inspector NO reprocesa vision -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error FORBIDDEN y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FORBIDDEN\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_inspector}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{id_ec}}/analisis-vision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{id_ec}}",
+                "analisis-vision"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Solo si ya existe un inspector de pruebas. Configurar token_inspector e inspector_municipalidad_id en Bache0 Local; NO ejecutarla sin ellos."
+    },
+    {
+      "name": "09 - MANUAL - Cobertura y subida invalida",
+      "item": [
+        {
+          "name": "09.1 - Providencia sin cobertura 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Error MUNICIPALIDAD_SIN_COBERTURA y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"MUNICIPALIDAD_SIN_COBERTURA\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitud",
+                  "type": "text",
+                  "value": "{{lat_providencia}}"
+                },
+                {
+                  "key": "longitud",
+                  "type": "text",
+                  "value": "{{lon_providencia}}"
+                },
+                {
+                  "key": "metodo_ubicacion",
+                  "type": "text",
+                  "value": "pin_manual"
+                },
+                {
+                  "key": "ubicacion_confirmada",
+                  "type": "text",
+                  "value": "true"
+                },
+                {
+                  "key": "severidad",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "concurrencia_vial",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "infraestructura_critica",
+                  "type": "text",
+                  "value": "ninguna"
+                },
+                {
+                  "key": "descripcion",
+                  "type": "text",
+                  "value": "PRUEBA RECHAZO - MUNICIPALIDAD SIN COBERTURA"
+                },
+                {
+                  "description": "Seleccionar archivo JPEG/PNG/WebP de prueba real.",
+                  "key": "foto",
+                  "type": "file",
+                  "value": null
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "description": "Definir antes lat_providencia y lon_providencia (dentro de Providencia); elegir foto. Depende de la resolución de ubicación y del servicio geográfico."
+          },
+          "response": []
+        },
+        {
+          "name": "09.2 - PDF en foto -> 415",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 415\", () => pm.response.to.have.status(415));",
+                  "pm.test(\"Error UNSUPPORTED_MEDIA_TYPE y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"UNSUPPORTED_MEDIA_TYPE\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitud",
+                  "type": "text",
+                  "value": "-33.4602"
+                },
+                {
+                  "key": "longitud",
+                  "type": "text",
+                  "value": "-70.6981"
+                },
+                {
+                  "key": "metodo_ubicacion",
+                  "type": "text",
+                  "value": "pin_manual"
+                },
+                {
+                  "key": "ubicacion_confirmada",
+                  "type": "text",
+                  "value": "true"
+                },
+                {
+                  "key": "severidad",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "concurrencia_vial",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "infraestructura_critica",
+                  "type": "text",
+                  "value": "ninguna"
+                },
+                {
+                  "key": "descripcion",
+                  "type": "text",
+                  "value": "PRUEBA POSTMAN BACHE0 - FICTICIO - NO ES UN REPORTE REAL"
+                },
+                {
+                  "description": "Seleccionar un PDF ficticio de prueba, no documento privado.",
+                  "key": "foto",
+                  "type": "file",
+                  "value": null
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "description": "Elegir en Postman un archivo PDF de prueba. Verifica rechazo antes de almacenar."
+          },
+          "response": []
+        },
+        {
+          "name": "09.3 - Imagen mayor a 10 MiB -> 413",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 413\", () => pm.response.to.have.status(413));",
+                  "pm.test(\"Error FILE_TOO_LARGE y sin data\", () => { const b=pm.response.json(); pm.expect(b.error?.code).to.eql(\"FILE_TOO_LARGE\"); pm.expect(b.data).to.be.undefined; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitud",
+                  "type": "text",
+                  "value": "-33.4602"
+                },
+                {
+                  "key": "longitud",
+                  "type": "text",
+                  "value": "-70.6981"
+                },
+                {
+                  "key": "metodo_ubicacion",
+                  "type": "text",
+                  "value": "pin_manual"
+                },
+                {
+                  "key": "ubicacion_confirmada",
+                  "type": "text",
+                  "value": "true"
+                },
+                {
+                  "key": "severidad",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "concurrencia_vial",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "infraestructura_critica",
+                  "type": "text",
+                  "value": "ninguna"
+                },
+                {
+                  "key": "descripcion",
+                  "type": "text",
+                  "value": "PRUEBA POSTMAN BACHE0 - FICTICIO - NO ES UN REPORTE REAL"
+                },
+                {
+                  "description": "Seleccionar imagen ficticia de >10 MiB para provocar 413.",
+                  "key": "foto",
+                  "type": "file",
+                  "value": null
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "description": "Elegir archivo de prueba de más de 10 MiB. No usar fotos personales."
+          },
+          "response": []
+        },
+        {
+          "name": "09.4 - Sin fotografía -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitud",
+                  "type": "text",
+                  "value": "-33.4602"
+                },
+                {
+                  "key": "longitud",
+                  "type": "text",
+                  "value": "-70.6981"
+                },
+                {
+                  "key": "metodo_ubicacion",
+                  "type": "text",
+                  "value": "pin_manual"
+                },
+                {
+                  "key": "ubicacion_confirmada",
+                  "type": "text",
+                  "value": "true"
+                },
+                {
+                  "key": "severidad",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "concurrencia_vial",
+                  "type": "text",
+                  "value": "media"
+                },
+                {
+                  "key": "infraestructura_critica",
+                  "type": "text",
+                  "value": "ninguna"
+                },
+                {
+                  "key": "descripcion",
+                  "type": "text",
+                  "value": "PRUEBA POSTMAN BACHE0 - FICTICIO - NO ES UN REPORTE REAL"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "description": "No incluye foto; debe rechazar sin crear reporte."
+          },
+          "response": []
+        }
+      ],
+      "description": "Se ejecuta seleccionando una foto de prueba y, para cobertura, coordenadas de Providencia verificadas. Estos intentos deben ser rechazados, sin crear reportes."
+    }
+  ],
+  "variable": [
+    {
+      "key": "id_ec",
+      "value": "1"
+    },
+    {
+      "key": "id_lp",
+      "value": "2"
+    },
+    {
+      "key": "id_eb",
+      "value": "3"
+    },
+    {
+      "key": "reporte_prueba_id",
+      "value": ""
+    },
+    {
+      "key": "analisis_prueba_id",
+      "value": ""
+    }
+  ]
+}
