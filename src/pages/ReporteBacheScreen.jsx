@@ -4,6 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+import logoBache0 from '../assets/logo_bache0_azul_hd.png';
+import ilustracionCiudadano from '../assets/ilustracion_reporte_ciudadano.webp';
 
 const iconoPin = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
 L.Marker.prototype.options.icon = iconoPin;
@@ -228,15 +230,50 @@ export default function ReporteBacheScreen() {
     }
   };
 
+  // Bache0-QR-escritorio-v2: sólo interfaz; formulario móvil intacto.
   if (!esMovil) {
+    const enlaceMovil = `${window.location.origin}/reporte`;
+    const urlQR = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(enlaceMovil)}`;
     return (
-      <div style={styles.escritorioContenedor}>
-        <div style={styles.escritorioTarjeta}>
-          <h2 style={{ color: '#0033A0' }}>Módulo de Terreno</h2>
-          <p>Los reportes de baches están diseñados para realizarse desde un dispositivo móvil.</p>
-          <strong>Ingresa desde tu celular para realizar un reporte.</strong>
-          <div><img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`${window.location.origin}/reporte`)}`} alt="Código QR para ingresar desde el celular" style={{ marginTop: 20, padding: 5, border: '1px solid #ddd' }} /></div>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-sky-100 px-4 py-8 font-sans text-slate-900 lg:px-8 lg:py-12">
+        <main className="mx-auto w-full max-w-7xl overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl">
+          <header className="flex flex-wrap items-center gap-4 border-b border-slate-100 px-6 py-5 lg:px-12">
+            <img src={logoBache0} alt="Bache 0" className="h-auto w-44 object-contain lg:w-52" />
+            <span className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800">Módulo Ciudadano</span>
+          </header>
+          <div className="grid items-center gap-6 px-6 py-8 lg:grid-cols-2 lg:gap-10 lg:px-12 lg:py-12">
+            <section>
+              <h1 className="max-w-xl text-4xl font-extrabold leading-tight tracking-tight text-blue-950 lg:text-5xl">Reporta un bache desde tu celular</h1>
+              <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-600">Toma una fotografía, confirma la ubicación en el mapa y envía los antecedentes del daño vial desde el lugar del reporte.</p>
+              <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+                <h2 className="font-bold text-blue-900">¿Por qué aparece un código QR?</h2>
+                <p className="mt-2 text-sm leading-relaxed text-blue-950">Este formulario está diseñado para utilizar la cámara y la ubicación del teléfono. Si estás en un computador, escanea el QR con tu celular para continuar en el módulo ciudadano.</p>
+              </div>
+              <div className="mt-6 flex flex-wrap items-center gap-5">
+                <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-md">
+                  <img src={urlQR} alt="QR que abre el formulario de Bache0 en el celular" className="h-48 w-48 lg:h-52 lg:w-52" />
+                  <p className="mt-2 text-center text-sm font-bold text-blue-900">Escanea y reporta</p>
+                </div>
+                <div className="max-w-52 text-sm leading-relaxed text-slate-600">
+                  <p className="font-bold text-slate-900">Tres pasos</p>
+                  <p className="mt-2">1. Fotografía del daño</p>
+                  <p>2. Confirma el punto en el mapa</p>
+                  <p>3. Completa y envía el reporte</p>
+                  <a href={enlaceMovil} className="mt-4 inline-block break-all font-semibold text-blue-700 underline">Abrir enlace del formulario</a>
+                </div>
+              </div>
+            </section>
+            <aside className="overflow-hidden rounded-3xl border border-blue-100 bg-blue-50 shadow-sm">
+              <img src={ilustracionCiudadano} alt="Ilustración de una persona que registra un bache utilizando el formulario del celular" className="h-auto w-full object-cover" />
+              <p className="px-5 py-3 text-xs text-slate-500">Simulación ilustrativa del proceso de reporte. El formulario real se abre al escanear el QR.</p>
+            </aside>
+          </div>
+          <div className="grid gap-4 border-t border-blue-100 bg-slate-50 px-6 py-6 lg:grid-cols-3 lg:px-12">
+            <div className="rounded-xl bg-white p-4"><p className="font-bold text-blue-900">1 · Toma una foto</p><p className="mt-1 text-sm text-slate-600">Registra claramente el daño del pavimento.</p></div>
+            <div className="rounded-xl bg-white p-4"><p className="font-bold text-blue-900">2 · Confirma la ubicación</p><p className="mt-1 text-sm text-slate-600">Verifica o ajusta el pin en el mapa.</p></div>
+            <div className="rounded-xl bg-white p-4"><p className="font-bold text-blue-900">3 · Envía el reporte</p><p className="mt-1 text-sm text-slate-600">Completa los datos y recibe un folio.</p></div>
+          </div>
+        </main>
       </div>
     );
   }

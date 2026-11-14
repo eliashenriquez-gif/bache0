@@ -1012,17 +1012,17 @@ const tenantLabel = esSuperadministrador
                 )}
 
 
-              {/* REPORTES DISPONIBLES */}
+              {/* REPORTES DISPONIBLES: Bache0-dashboard-ancho-completo-v1 */}
 
               {!cargandoReportes &&
                 reportesFiltrados.length > 0 && (
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
 
 
                     {/* MAPA DE REPORTES */}
 
-                    <div className="col-span-1 lg:col-span-2 bg-white p-5 rounded-xl shadow-xs border border-slate-200">
+                    <div className="col-span-1 min-w-0 bg-white p-5 rounded-xl shadow-xs border border-slate-200">
 
                       <h3 className="font-semibold text-slate-700 mb-3">
                         Georreferenciación de Baches
@@ -1062,24 +1062,6 @@ const tenantLabel = esSuperadministrador
                     </div>
 
 
-                    {/* ALERTAS Y LISTADO */}
-
-                    <div className="col-span-1 bg-white p-5 rounded-xl shadow-xs border border-slate-200">
-
-                      <h3 className="font-semibold text-slate-700 mb-3">
-                        Reportes Comunales
-                      </h3>
-
-                      <div className="h-[380px] overflow-y-auto pr-1">
-
-                        <ListaReportes
-                          reportes={reportesFiltrados}
-                          onVerDetalle={handleVerDetalle}
-                        />
-
-                      </div>
-
-                    </div>
 
                   </div>
 
@@ -1094,7 +1076,7 @@ const tenantLabel = esSuperadministrador
                   <div className="bg-white p-5 rounded-xl shadow-xs border border-slate-200">
 
                     <h3 className="font-semibold text-slate-700 mb-4">
-                      Historial de Reportes Oficiales
+                      Reportes Comunales
                     </h3>
 
                     <ListaReportes
