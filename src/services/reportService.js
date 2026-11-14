@@ -168,3 +168,27 @@ export async function archiveReport(token, id) {
 
   return parseResponse(response);
 }
+
+/**
+ * GET /api/v1/reportes/:id/analisis-vision
+ * La API devuelve { data: [analisis...] }, ordenados del más reciente al más antiguo.
+ * El backend verifica el ámbito municipal del JWT.
+ */
+export async function getReportVisionAnalyses(token, id) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/reportes/${encodeURIComponent(id)}/analisis-vision`,
+    {
+      method: 'GET',
+      headers: buildHeaders(token),
+    }
+  );
+
+  const payload = await parseResponse(response);
+  const analyses = payload?.data ?? payload;
+
+  if (!Array.isArray(analyses)) {
+    throw new Error('La API no devolvió una lista válida de análisis de visión.');
+  }
+
+  return analyses;
+}

@@ -36,6 +36,7 @@ import {
 import {
   listReports,
   getReportPhoto,
+  getReportVisionAnalyses,
   updateReportStatus,
 } from "./services/reportService";
 
@@ -124,6 +125,11 @@ export default function App() {
   const [fotoReporteUrl, setFotoReporteUrl] = useState(null);
   const [cargandoFoto, setCargandoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState("");
+
+  // Análisis real de TensorFlow.js, consultado al abrir cada expediente.
+  const [analisisVision, setAnalisisVision] = useState([]);
+  const [cargandoAnalisisVision, setCargandoAnalisisVision] = useState(false);
+  const [errorAnalisisVision, setErrorAnalisisVision] = useState("");
 
   // Estado que el funcionario desea guardar desde el detalle del reporte.
   const [estadoEdicion, setEstadoEdicion] = useState("pendiente");
@@ -383,6 +389,49 @@ export default function App() {
     };
   }, [token, reporteSeleccionado?.apiId, reporteSeleccionado?.fotoUrl]);
 
+
+  // --------------------------------------------------
+  // 7.B CONSULTAR EL ANÁLISIS REAL DE LA FOTOGRAFÍA
+  // --------------------------------------------------
+
+  useEffect(() => {
+    const reportId = reporteSeleccionado?.apiId;
+
+    setAnalisisVision([]);
+    setErrorAnalisisVision("");
+
+    if (!reportId || !token || isCitizenRoute) {
+      setCargandoAnalisisVision(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function loadVisionAnalysis() {
+      setCargandoAnalisisVision(true);
+
+      try {
+        const analyses = await getReportVisionAnalyses(token, reportId);
+        if (!cancelled) setAnalisisVision(analyses);
+      } catch (error) {
+        if (cancelled) return;
+        setErrorAnalisisVision(
+          error.status === 403
+            ? "No tienes permiso para consultar estos análisis."
+            : error.status === 404
+              ? "No se encontró el expediente solicitado."
+              : error.status === 401
+                ? "Sesión vencida. Vuelve a iniciar sesión."
+                : error.message || "No fue posible consultar el análisis de visión."
+        );
+      } finally {
+        if (!cancelled) setCargandoAnalisisVision(false);
+      }
+    }
+
+    loadVisionAnalysis();
+    return () => { cancelled = true; };
+  }, [token, reporteSeleccionado?.apiId, isCitizenRoute]);
 
   // --------------------------------------------------
   // 8. MANTENER SEPARADO EL MÓDULO CIUDADANO
@@ -1518,11 +1567,68 @@ const tenantLabel = esSuperadministrador
 
                   <div className="mt-3 rounded-lg border border-blue-100 bg-white p-3 text-sm">
                     <h5 className="font-semibold text-blue-900">Visión artificial (TensorFlow.js)</h5>
-                    <p className="mt-1 text-xs text-slate-600">
-                      La consulta de análisis de fotografía se conectará cuando esté
-                      integrado el endpoint de visión del backend. No se muestran
-                      estimaciones simuladas de diámetro o profundidad.
-                    </p>
+                    {cargandoAnalisisVision ? (
+                      <p className="mt-2 text-xs text-slate-600" role="status">
+                        Consultando el análisis de esta fotografía...
+                      </p>
+                    ) : errorAnalisisVision ? (
+                      <p className="mt-2 text-xs text-red-700" role="alert">
+                        {errorAnalisisVision}
+                      </p>
+                    ) : analisisVision.length === 0 ? (
+                      <p className="mt-2 text-xs text-slate-600">
+                        Este reporte todavía no tiene análisis de visión registrados.
+                      </p>
+                    ) : (
+                      <div className="mt-2 space-y-2 text-xs text-slate-700">
+                        <p>
+                          <strong>Estado:</strong> {analisisVision[0].estado}
+                        </p>
+                        {analisisVision[0].modelo && (
+                          <p>
+                            <strong>Modelo:</strong> {analisisVision[0].modelo}
+                          </p>
+                        )}
+                        {analisisVision[0].version_modelo && (
+                          <p className="break-all">
+                            <strong>Versión:</strong> {analisisVision[0].version_modelo}
+                          </p>
+                        )}
+                        {analisisVision[0].estado === "completado" && (
+                          Array.isArray(analisisVision[0].detecciones) &&
+                          analisisVision[0].detecciones.length > 0 ? (
+                            <div className="border-t border-blue-100 pt-2">
+                              <p className="mb-1 font-semibold">Clasificación de la fotografía</p>
+                              <ul className="space-y-1">
+                                {analisisVision[0].detecciones.map((deteccion, index) => (
+                                  <li key={`${index}-${deteccion.clase_modelo || deteccion.etiqueta}`} className="flex items-center justify-between gap-3">
+                                    <span>{deteccion.clase_modelo || deteccion.etiqueta || "Sin etiqueta"}</span>
+                                    <strong>
+                                      {deteccion.confianza != null && Number.isFinite(Number(deteccion.confianza))
+                                        ? `${(Number(deteccion.confianza) * 100).toFixed(2)} %`
+                                        : "Sin confianza"}
+                                    </strong>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : (
+                            <p>No se registraron detecciones en este análisis.</p>
+                          )
+                        )}
+                        {analisisVision[0].estado === "fallido" && (
+                          <p className="text-red-700">
+                            El análisis falló{analisisVision[0].error_code
+                              ? ` (${analisisVision[0].error_code})`
+                              : ""}.
+                          </p>
+                        )}
+                        <p className="border-t border-blue-100 pt-2 text-slate-500">
+                          Esta clasificación no estima diámetro ni profundidad.
+                          La prioridad se calcula separadamente mediante reglas explicables.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </section>
 
