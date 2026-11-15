@@ -7,6 +7,7 @@ const management = require('./reportManagementService');
 const storage = require('./photoStorageService');
 const visionService = require('./visionService');
 const { calcularPrioridad, PriorityInputError } = require('./priorityService');
+const { prepararDeteccionesPersistencia } = require('./visionV2Resumen');
 
 /*
  * ─────────────────────────── DEPENDENCIAS CON LA CAPA DE DATOS ───────────────────────────
@@ -192,16 +193,7 @@ async function ejecutarAnalisisVision(reporte, rutaFoto, { analisisId = null, re
     // 3b. Éxito
     const { analisis } = r;
     // El worker entrega todas las clases con su confianza; si no (otro proveedor), una sola detección.
-    const detecciones = Array.isArray(analisis.detecciones) && analisis.detecciones.length > 0
-      ? analisis.detecciones
-      : [
-        {
-          etiqueta: analisis.tipo_desperfecto,
-          confianza: analisis.confianza,
-          caja: null,
-          severidad_sugerida: analisis.severidad_sugerida ?? null,
-        },
-      ];
+    const detecciones = prepararDeteccionesPersistencia(analisis);
     await persistencia.vision.updateVisionAnalysis(
       persistencia.pool,
       id,

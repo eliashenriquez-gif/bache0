@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import MapaReportes from "./components/MapaReportes";
 import MapaTermico from "./components/MapaTermico";
 import ListaReportes from "./components/ListaReportes";
+import VisionV2Detalle, { esVisionV2 } from "./components/VisionV2Detalle";
 import LoginMunicipal from "./components/LoginMunicipal";
 import ReporteBacheScreen from "./pages/ReporteBacheScreen";
 
@@ -1548,7 +1549,9 @@ const tenantLabel = esSuperadministrador
                   </div>
 
                   <div className="mt-3 rounded-lg border border-blue-100 bg-white p-3 text-sm">
-                    <h5 className="font-semibold text-blue-900">Visión artificial (TensorFlow.js)</h5>
+                    <h5 className="font-semibold text-blue-900">
+                      Análisis de imagen · IA de apoyo
+                    </h5>
                     {cargandoAnalisisVision ? (
                       <p className="mt-2 text-xs text-slate-600" role="status">
                         Consultando el análisis de esta fotografía...
@@ -1566,17 +1569,10 @@ const tenantLabel = esSuperadministrador
                         <p>
                           <strong>Estado:</strong> {analisisVision[0].estado}
                         </p>
-                        {analisisVision[0].modelo && (
-                          <p>
-                            <strong>Modelo:</strong> {analisisVision[0].modelo}
-                          </p>
+                        {analisisVision[0].estado === "completado" && esVisionV2(analisisVision[0]) && (
+                          <VisionV2Detalle key={reporteSeleccionado.id} analisis={analisisVision[0]} fotoUrl={fotoReporteUrl} />
                         )}
-                        {analisisVision[0].version_modelo && (
-                          <p className="break-all">
-                            <strong>Versión:</strong> {analisisVision[0].version_modelo}
-                          </p>
-                        )}
-                        {analisisVision[0].estado === "completado" && (
+                        {analisisVision[0].estado === "completado" && !esVisionV2(analisisVision[0]) && (
                           Array.isArray(analisisVision[0].detecciones) &&
                           analisisVision[0].detecciones.length > 0 ? (
                             <div className="border-t border-blue-100 pt-2">
