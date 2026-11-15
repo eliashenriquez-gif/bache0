@@ -37,9 +37,21 @@ def extraer(prediction, ancho, alto):
     info = block.get("image")
     if not isinstance(info, dict):
         raise RespuestaInvalida("Workflow: faltan dimensiones de imagen")
+    # Algunos Workflows de Roboflow devuelven image.width/height=null
+    # cuando NO existe ninguna detección. No hay polígonos que escalar:
+    # una lista vacía es una respuesta válida, incluso si faltan estas
+    # dimensiones en los metadatos. La dimensión de la imagen fuente sigue
+    # viniendo de la fotografía/máscara local y debe ser válida.
+    if ancho <= 0 or alto <= 0 or ancho * alto > 50_000_000:
+        raise RespuestaInvalida("Dimensiones fuera de rango")
+    if (not block["predictions"] and info.get("width") is None
+            and info.get("height") is None):
+        return []
+    # Cuando hay al menos una detección, las dimensiones siguen siendo
+    # obligatorias: inventarlas podría alterar el área y el IoU.
     rw = _numero(info.get("width"), "image.width")
     rh = _numero(info.get("height"), "image.height")
-    if rw <= 0 or rh <= 0 or ancho <= 0 or alto <= 0 or ancho * alto > 50_000_000:
+    if rw <= 0 or rh <= 0:
         raise RespuestaInvalida("Dimensiones fuera de rango")
     sx, sy = ancho / rw, alto / rh
     resultado = []

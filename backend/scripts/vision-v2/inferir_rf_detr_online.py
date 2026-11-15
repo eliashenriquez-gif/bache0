@@ -30,8 +30,11 @@ def main():
     if not key:
         raise RuntimeError('ROBOFLOW_API_KEY no configurada')
     from inference_sdk import InferenceHTTPClient, InferenceConfiguration
+    transport = os.environ.get('ROBOFLOW_API_TRANSPORT', 'header').strip().lower()
+    if transport not in {'header', 'both', 'legacy'}:
+        raise ValueError('ROBOFLOW_API_TRANSPORT inválido')
     client = InferenceHTTPClient(api_url='https://serverless.roboflow.com', api_key=key).configure(
-        InferenceConfiguration(api_key_transport='header'))
+        InferenceConfiguration(api_key_transport=transport))
     raw = client.run_workflow(workspace_name=WORKSPACE, workflow_id=WORKFLOW,
                               images={'image': str(path)}, use_cache=True)
     features = caracteristicas(raw, w, h)

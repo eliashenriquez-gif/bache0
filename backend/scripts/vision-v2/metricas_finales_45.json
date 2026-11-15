@@ -1,0 +1,19 @@
+{
+  "total": 45,
+  "TP": 17,
+  "FP": 3,
+  "TN": 22,
+  "FN": 3,
+  "tp_inst": 22,
+  "fp_inst": 7,
+  "fn_inst": 13,
+  "precision_foto": 0.85,
+  "recall_foto": 0.85,
+  "f1_foto": 0.85,
+  "exactitud_foto": 0.8666666666666667,
+  "precision_inst": 0.7586206896551724,
+  "recall_inst": 0.6285714285714286,
+  "umbral_confianza": 0.4,
+  "nota_iou": "Los IoU micro por grupo no se pueden combinar sin interseccion y union de pixeles por foto.",
+  "origen": "15 reserva + 30 adicionales PavementDamagesG-7, archivos originales recibidos el 2026-11-15"
+}

@@ -480,3 +480,44 @@ test('contrato: las entradas de reportService son aceptadas por los repositorios
   const fila = await vision.createVisionAnalysis(crearFila.pool, { reporte_id: 7, estado: 'pendiente', detecciones: [] }, { scope, actor });
   assert.equal(fila.estado, 'pendiente');
 });
+
+// ───────────── RF-DETR V2: persistencia del resumen visual sin prioridad automática ─────────────
+test('V2: guarda candidatos y porcentaje union en JSONB sin alterar puntaje municipal', async () => {
+  estado.vision = async () => ({ ok: true, analisis: {
+    proveedor:'Roboflow-RFDETR-V2', modelo:'bache0-v2-segmentation-2-rfdetr-seg-small-t1',
+    version_modelo:'v2-RFDETR-small', tipo_desperfecto:'bache', confianza:.9,
+    severidad_sugerida:null, puntos_ia:0, baches_candidatos:2,
+    area_visual_pct_union:18.2, ancho_imagen:1920, alto_imagen:1080,
+    detecciones:[
+      { etiqueta:'bache', confianza:.9, severidad_sugerida:null, area_visual_pct:13, caja:{x_min:10,y_min:10,x_max:100,y_max:100}},
+      { etiqueta:'bache', confianza:.85, severidad_sugerida:null, area_visual_pct:7, caja:{x_min:90,y_min:90,x_max:200,y_max:200}},
+    ],
+  }});
+  await crear();
+  await reportService.esperarAnalisisPendientes();
+  assert.equal(estado.filas.length, 1);
+  const fila = estado.filas[0];
+  assert.equal(fila.estado, 'completado');
+  assert.equal(fila.detecciones.length, 2);
+  assert.equal(fila.detecciones[0].resumen_visual.area_visual_pct_union,18.2);
+  assert.equal(fila.detecciones[0].resumen_visual.puntos_ia,0);
+  assert.equal(fila.detecciones[0].resumen_visual.area_m2,null);
+  assert.equal(estado.prioridades.length,2);
+  assert.equal(estado.prioridades.at(-1).entrada.motivos.find(m=>m.tipo==='resumen').puntaje,5);
+});
+
+test('V2: sin candidatos NO significa calle sana, guarda resumen cero', async () => {
+  estado.vision = async () => ({ ok: true, analisis: {
+    proveedor:'Roboflow-RFDETR-V2', modelo:'bache0-v2-segmentation-2-rfdetr-seg-small-t1',
+    version_modelo:'v2-RFDETR-small', tipo_desperfecto:'ninguno', confianza:0,
+    severidad_sugerida:null, puntos_ia:0, baches_candidatos:0,
+    area_visual_pct_union:0, ancho_imagen:1920, alto_imagen:1080, detecciones:[],
+  }});
+  await crear();
+  await reportService.esperarAnalisisPendientes();
+  assert.equal(estado.filas[0].estado,'completado');
+  assert.equal(estado.filas[0].detecciones.length,1);
+  assert.equal(estado.filas[0].detecciones[0].etiqueta,'ninguno');
+  assert.equal(estado.filas[0].detecciones[0].resumen_visual.area_visual_pct_union,0);
+  assert.equal(estado.prioridades.at(-1).entrada.motivos.find(m=>m.tipo==='resumen').puntaje,5);
+});
