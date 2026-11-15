@@ -170,6 +170,13 @@ function conLimite(promesa, ms) {
 
 async function analizar(rutaFoto) {
   try {
+    // Proveedor experimental: NUNCA activo por defecto. Solo en la rama V2 con opt-in explícito.
+    if (process.env.VISION_V2_PROVIDER === 'rfdetr') {
+      const r = await require('./visionV2Service').analyzeImage(rutaFoto);
+      if (r.ok || process.env.VISION_V2_FALLBACK_LEGACY !== 'true') return r;
+      // Si el cloud falla, el clasificador local sigue disponible como respaldo.
+      // El proveedor persistido será el del resultado REAL (legacy), no se finge RF-DETR.
+    }
     const total = timeoutMs();
     const inicio = Date.now();
 

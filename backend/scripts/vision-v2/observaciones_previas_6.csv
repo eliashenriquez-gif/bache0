@@ -1,0 +1,7 @@
+﻿id,grupo,bache_anotado,clase_predicha_chat_principal,confianza_bache_reportada,clasificacion_correcta,nota
+B09,desarrollo,True,Bache,,True,Dato comunicado en chat principal; no reproducido con este kit
+B13,desarrollo,True,Bache,,True,Dato comunicado en chat principal; no reproducido con este kit
+B16,desarrollo,True,Bache,,True,Dato comunicado en chat principal; no reproducido con este kit
+A01,desarrollo,False,Bache,0.9973,False,Dato comunicado en chat principal; no reproducido con este kit
+G02,desarrollo,False,Bache,0.9964,False,Dato comunicado en chat principal; no reproducido con este kit
+N01,desarrollo,False,Bache,0.9539,False,Dato comunicado en chat principal; no reproducido con este kit
