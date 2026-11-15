@@ -1550,7 +1550,7 @@ const tenantLabel = esSuperadministrador
 
                   <div className="mt-3 rounded-lg border border-blue-100 bg-white p-3 text-sm">
                     <h5 className="font-semibold text-blue-900">
-                      {esVisionV2(analisisVision[0]) ? "Visión artificial RF-DETR V2 · experimental" : "Visión artificial (TensorFlow.js)"}
+                      Análisis de imagen · IA de apoyo
                     </h5>
                     {cargandoAnalisisVision ? (
                       <p className="mt-2 text-xs text-slate-600" role="status">
@@ -1569,16 +1569,6 @@ const tenantLabel = esSuperadministrador
                         <p>
                           <strong>Estado:</strong> {analisisVision[0].estado}
                         </p>
-                        {analisisVision[0].modelo && (
-                          <p>
-                            <strong>Modelo:</strong> {analisisVision[0].modelo}
-                          </p>
-                        )}
-                        {analisisVision[0].version_modelo && (
-                          <p className="break-all">
-                            <strong>Versión:</strong> {analisisVision[0].version_modelo}
-                          </p>
-                        )}
                         {analisisVision[0].estado === "completado" && esVisionV2(analisisVision[0]) && (
                           <VisionV2Detalle key={reporteSeleccionado.id} analisis={analisisVision[0]} fotoUrl={fotoReporteUrl} />
                         )}
