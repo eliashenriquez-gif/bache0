@@ -202,3 +202,46 @@ El sistema trata fotografías potencialmente identificables, ubicación del inci
 ## Próxima entrega (Hito 3)
 
 La pauta pide la integración funcional, bitácora, documentación final, manual de instalación/uso y **video de hasta dos minutos** accesible desde el README. Esos enlaces deben añadirse cuando sus archivos definitivos y el video estén realmente publicados; no se declaran entregados anticipadamente.
+
+
+## Comprobación guiada de una instalación nueva (evaluación local)
+
+Esta sección complementa la instalación anterior. Los valores `.env.example` son **plantillas**: las contraseñas y `JWT_SECRET` de ejemplo **no sirven para iniciar sesión ni conectarse a PostgreSQL**. No se deben subir `.env` ni exportaciones de Postman que contengan credenciales.
+
+### Programas necesarios y opcionales
+
+- **Necesarios para ejecutar en un computador:** Git para clonar, Node.js 20 o superior con npm, PostgreSQL en ejecución y un navegador.
+- **Herramientas, no dependencias de ejecución:** Visual Studio Code (o cualquier editor), pgAdmin (alternativa a `psql` para ejecutar SQL), Postman (demostración de la API).
+- **Solo para acceso desde otro dispositivo:** una API pública con HTTPS y CORS configurado. Cloudflare Tunnel es una opción; no se necesita para las pruebas locales en Postman. El `localhost` de un teléfono no es el `localhost` del computador.
+- **IA normal:** se ejecuta localmente con `@tensorflow/tfjs`; el aviso de rendimiento que menciona `tfjs-node` no obliga a instalarlo. RF-DETR/Roboflow es experimental y opcional.
+
+### Simular al profesor sin afectar el entorno de desarrollo
+
+Para mantener separadas las instalaciones, se recomienda probar en otra carpeta y con otra **base de datos**, no solo con otro puerto HTTP:
+
+| Ajuste | Instalación habitual | Instalación de evaluación (ejemplo) |
+| --- | --- | --- |
+| Carpeta | `bache0/` | `bache0_profesor_prueba/` |
+| `PORT` (API HTTP) | `3000` | `3100` |
+| `PGDATABASE` (base SQL) | `bache0_dev` | `bache0_profesor` |
+| `PGPORT` (servicio PostgreSQL) | `5432` | `5432` |
+| `PGUSER`, `PGPASSWORD` | Credenciales locales válidas | Credenciales válidas con permisos en la base nueva |
+
+1. Clonar el repositorio en una carpeta nueva y ejecutar `npm ci` en la raíz **y** en `backend/`.
+2. Crear una base **vacía** `bache0_profesor` en pgAdmin; ejecutar allí `db/schema.sql` seguido de `db/seed.sql`.
+3. Crear `backend/.env` a partir de `.env.example`. Indicar explícitamente `PORT=3100`, `PGDATABASE=bache0_profesor`, `PGUSER` y `PGPASSWORD` válidos, `JWT_SECRET` de al menos 32 caracteres y `SEED_SUPERADMIN_EMAIL` con formato válido, más `SEED_SUPERADMIN_PASSWORD` de 12 a 128 caracteres. El correo `superadmin@example.test` es **ficticio y válido** para una cuenta de evaluación.
+4. Desde `backend/`, **antes de iniciar**, comprobar que las variables apuntan a la base aislada, sin imprimir secretos:
+
+```powershell
+node --env-file=.env -e "console.log({puerto:process.env.PORT,base:process.env.PGDATABASE,usuario:process.env.PGUSER,claveDbConfigurada:Boolean(process.env.PGPASSWORD),jwtValido:(process.env.JWT_SECRET||'').length>=32,superadminConfigurado:Boolean(process.env.SEED_SUPERADMIN_EMAIL&&process.env.SEED_SUPERADMIN_PASSWORD)})"
+```
+
+   No continuar si `base` no es `bache0_profesor`. **El puerto 3100 no garantiza por sí solo el aislamiento de PostgreSQL.**
+
+5. Ejecutar `npm run seed:photos`, `npm run smoke:db` y `npm test`; después `npm start`. Abrir `http://localhost:3100/health` y comprobar `status: ok`. Verificar en PostgreSQL `SELECT current_database();` antes de hacer operaciones de escritura.
+6. En Postman, importar `backend/postman/Bache0_Hito2_Demo_CRUD.postman_collection.json` y configurar sus variables de colección `baseUrl=http://localhost:3100/api/v1`, `superadmin_email`, `superadmin_password` y `municipalidad_id=1`. Ejecutar en secuencia la solicitud 0, las 1.1–1.5 y las 2.1–2.6. En la 2.1, adjuntar manualmente `backend/fixtures/seed-photos/demo-report-001.png` como `foto`. Los códigos 204 y 404 finales son intencionales.
+7. Para el frontend de esta misma copia, arrancar Vite desde la raíz con `VITE_API_URL=http://localhost:3100` (**sin `/api/v1`**) y configurar `CORS_ORIGINS` del backend para incluir el origen real que Vite indique (por ejemplo, `http://localhost:5173`; si utiliza 5174, incluir 5174 también y reiniciar el servidor). Los frontend publicados requieren una API HTTPS accesible y no pueden usar `localhost:3100` de otro computador.
+
+**Diagnóstico rápido:** `Cannot find module` → ejecutar `npm ci` en la carpeta correspondiente; error PostgreSQL `password authentication failed` → comprobar credenciales de **ese usuario** sin cambiarlas; `PGPASSWORD no definido` → no dejar en blanco la plantilla; error por `JWT_SECRET` → crear un secreto largo **solo en el `.env` privado**; `SEED_SUPERADMIN_EMAIL` inválido → usar una dirección con formato de correo; `relation usuarios does not exist` → revisar base y orden de importación SQL; warning `MODULE_TYPELESS_PACKAGE_JSON` o aviso de optimización de TensorFlow.js → advertencias, no equivalen a falla de inicio.
+
+**Colecciones distintas:** el Hito 2 tiene 12 solicitudes de demostración CRUD; la colección `Bache0_Hito3_Final` tiene 73 solicitudes de integración, roles, seguridad, fotografías y visión, algunas manuales. Una no sustituye a la otra. Los datos generados por las solicitudes se deben crear únicamente en una base de evaluación.
