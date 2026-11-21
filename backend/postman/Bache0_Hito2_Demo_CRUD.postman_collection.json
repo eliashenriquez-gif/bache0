@@ -1,0 +1,724 @@
+{
+  "info": {
+    "name": "Bache 0 · Hito 2 · Demostración CRUD (breve)",
+    "description": "Demostración de 4 peticiones por recurso (crear, leer, actualizar, borrar) con persistencia confirmada.\n\nPrerrequisitos: API en http://localhost:3000, base creada con db/schema.sql y db/seed.sql, superadministrador creado por SEED_SUPERADMIN_*. Los IDs de municipalidad corresponden al seed actual (1 Estación Central, 2 La Pintana, 3 El Bosque, 4 Providencia sin servicio).\n\nCrea solo datos ficticios que la propia colección desactiva o archiva. Ejecútala preferiblemente sobre una base aislada (p. ej. bache0_profesor). La foto se adjunta manualmente desde el repositorio: selecciónala en 2.1 antes de enviar. Ejecútala en orden.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0 · Login superadmin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{superadmin_email}}\",\n  \"password\": \"{{superadmin_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Define superadmin_email y superadmin_password en las variables de la colección (los mismos SEED_SUPERADMIN_* de tu backend/.env). No subas credenciales reales."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Guarda el token\", () => { const t = pm.response.json().data.access_token; pm.expect(t).to.be.a(\"string\"); pm.collectionVariables.set(\"superadmin_token\", t); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 · Usuarios municipales (CRUD)",
+      "item": [
+        {
+          "name": "1.1 · Crear inspector (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Inspector Demo {{run_id}}\",\n  \"email\": \"inspector.demo.{{run_id}}@example.test\",\n  \"password\": \"{{demo_password}}\",\n  \"rol\": \"inspector\",\n  \"municipalidad_id\": {{municipalidad_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"run_id\", String(Date.now()));",
+                  "pm.collectionVariables.set(\"demo_password\", \"Demo-\" + Date.now() + \"-xY\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Rol y municipalidad correctos\", () => { pm.expect(d.rol).to.eql(\"inspector\"); pm.expect(String(d.municipalidad_id)).to.eql(pm.collectionVariables.get(\"municipalidad_id\")); });",
+                  "pm.test(\"No expone password ni hash\", () => { pm.expect(JSON.stringify(d)).to.not.include(\"password\"); });",
+                  "pm.collectionVariables.set(\"user_id\", String(d.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 · Leer la cuenta (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{user_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{user_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Es la cuenta creada\", () => pm.expect(String(pm.response.json().data.id)).to.eql(pm.collectionVariables.get(\"user_id\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 · Actualizar nombre (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{user_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{user_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Inspector Demo (editado)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"El nombre cambió\", () => pm.expect(pm.response.json().data.nombre).to.eql(\"Inspector Demo (editado)\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 · Desactivar la cuenta (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{user_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{user_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 · Confirmar persistencia: activo=false (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/{{user_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "{{user_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"La cuenta se conserva desactivada\", () => pm.expect(pm.response.json().data.activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 · Reportes (CRUD)",
+      "item": [
+        {
+          "name": "2.1 · Crear reporte ciudadano (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "latitud",
+                  "type": "text",
+                  "value": "-33.4602",
+                  "description": ""
+                },
+                {
+                  "key": "longitud",
+                  "type": "text",
+                  "value": "-70.6981",
+                  "description": ""
+                },
+                {
+                  "key": "metodo_ubicacion",
+                  "type": "text",
+                  "value": "pin_manual",
+                  "description": ""
+                },
+                {
+                  "key": "ubicacion_confirmada",
+                  "type": "text",
+                  "value": "true",
+                  "description": ""
+                },
+                {
+                  "key": "severidad",
+                  "type": "text",
+                  "value": "media",
+                  "description": ""
+                },
+                {
+                  "key": "concurrencia_vial",
+                  "type": "text",
+                  "value": "media",
+                  "description": ""
+                },
+                {
+                  "key": "infraestructura_critica",
+                  "type": "text",
+                  "value": "ninguna",
+                  "description": ""
+                },
+                {
+                  "key": "descripcion",
+                  "type": "text",
+                  "value": "PRUEBA POSTMAN BACHE0 - FICTICIO - NO ES UN REPORTE REAL",
+                  "description": ""
+                },
+                {
+                  "key": "foto",
+                  "type": "file",
+                  "src": [],
+                  "description": "Elegir manualmente backend/fixtures/seed-photos/demo-report-001.png (o cualquier JPEG/PNG/WebP de hasta 10 MB) antes de Send."
+                }
+              ]
+            },
+            "description": "Petición pública (sin token). Requiere internet: la comuna se resuelve con Nominatim. Elige la foto antes de enviar."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Cabecera Location\", () => pm.expect(pm.response.headers.get(\"Location\")).to.match(/\\/api\\/v1\\/reportes\\/\\d+$/));",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Folio BA-AAAA-NNNNNN\", () => pm.expect(d.folio).to.match(/^BA-\\d{4}-\\d{6}$/));",
+                  "pm.collectionVariables.set(\"reporte_id\", String(d.id)); pm.collectionVariables.set(\"reporte_folio\", d.folio);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 · Leer el reporte (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Mismo folio\", () => pm.expect(pm.response.json().data.folio).to.eql(pm.collectionVariables.get(\"reporte_folio\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 · Cambiar estado a en_revision (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_id}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_id}}",
+                "estado"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"en_revision\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado actualizado\", () => pm.expect(pm.response.json().data.estado).to.eql(\"en_revision\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4 · Editar el reporte (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"severidad\": \"alta\",\n  \"concurrencia_vial\": \"alta\",\n  \"infraestructura_critica\": \"ninguna\",\n  \"descripcion\": \"PRUEBA POSTMAN BACHE0 - FICTICIO - EDITADO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Severidad actualizada\", () => pm.expect(pm.response.json().data.severidad).to.eql(\"alta\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5 · Archivar el reporte (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.6 · Confirmar: el reporte archivado ya no aparece (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/{{reporte_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "{{reporte_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{superadmin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato de error uniforme\", () => pm.expect(pm.response.json().error.code).to.eql(\"NOT_FOUND\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "superadmin_email",
+      "value": ""
+    },
+    {
+      "key": "superadmin_password",
+      "value": ""
+    },
+    {
+      "key": "municipalidad_id",
+      "value": "1"
+    },
+    {
+      "key": "superadmin_token",
+      "value": ""
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "demo_password",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "reporte_id",
+      "value": ""
+    },
+    {
+      "key": "reporte_folio",
+      "value": ""
+    }
+  ]
+}

@@ -44,12 +44,14 @@ paths:
       operationId: getHealth
   /api/v1/municipalidades:
     get:
-      summary: Listar municipalidades
+      summary: Listar municipalidades (NO IMPLEMENTADA)
       description: Devuelve municipalidades activas con servicio Bache 0 habilitado. El parámetro incluir_inactivas
         solo es permitido para superadministrador autenticado.
       tags:
       - Municipalidades
-      x-bache0-phase: H2
+      x-bache0-phase: Evolución futura (no implementada en main)
+      x-bache0-implementada: false
+      x-bache0-nota: Propuesta de evolución futura; no existe la ruta en el servidor. La cobertura municipal se resuelve internamente en POST /api/v1/ubicaciones/resolver.
       responses:
         '200':
           description: Lista municipalidades activas y con servicio habilitado. No devuelve geometrías internas
@@ -95,11 +97,13 @@ paths:
       - BearerAuth: []
       operationId: listMunicipalidades
     post:
-      summary: Crear municipalidad
+      summary: Crear municipalidad (NO IMPLEMENTADA)
       description: Solo superadministradores. La fila se crea activa si no se indica lo contrario.
       tags:
       - Municipalidades
-      x-bache0-phase: H3 / evolución
+      x-bache0-phase: Evolución futura (no implementada en main)
+      x-bache0-implementada: false
+      x-bache0-nota: Propuesta de evolución futura; no existe la ruta en el servidor y queda fuera del alcance implementado.
       responses:
         '201':
           description: Municipalidad creada.
@@ -157,11 +161,13 @@ paths:
         type: integer
         minimum: 1
     get:
-      summary: Obtener municipalidad
+      summary: Obtener municipalidad (NO IMPLEMENTADA)
       description: Devuelve los datos públicos de una municipalidad.
       tags:
       - Municipalidades
-      x-bache0-phase: H2
+      x-bache0-phase: Evolución futura (no implementada en main)
+      x-bache0-implementada: false
+      x-bache0-nota: Propuesta de evolución futura; no existe la ruta en el servidor. La cobertura municipal se resuelve internamente en POST /api/v1/ubicaciones/resolver.
       responses:
         '200':
           description: Municipalidad encontrada.
@@ -190,12 +196,14 @@ paths:
       security: []
       operationId: getMunicipalidad
     put:
-      summary: Actualizar municipalidad
+      summary: Actualizar municipalidad (NO IMPLEMENTADA)
       description: Solo superadministradores. Reemplaza sus campos editables. La desactivación no elimina reportes
         históricos asociados.
       tags:
       - Municipalidades
-      x-bache0-phase: H3 / evolución
+      x-bache0-phase: Evolución futura (no implementada en main)
+      x-bache0-implementada: false
+      x-bache0-nota: Propuesta de evolución futura; no existe la ruta en el servidor y queda fuera del alcance implementado.
       responses:
         '200':
           description: Municipalidad actualizada.
@@ -250,12 +258,14 @@ paths:
       - BearerAuth: []
       operationId: updateMunicipalidad
     delete:
-      summary: Desactivar municipalidad
+      summary: Desactivar municipalidad (NO IMPLEMENTADA)
       description: Desactivación lógica; no elimina físicamente la municipalidad ni sus usuarios/reportes históricos.
         Solo superadministradores.
       tags:
       - Municipalidades
-      x-bache0-phase: H3 / evolución
+      x-bache0-phase: Evolución futura (no implementada en main)
+      x-bache0-implementada: false
+      x-bache0-nota: Propuesta de evolución futura; no existe la ruta en el servidor y queda fuera del alcance implementado.
       responses:
         '204':
           description: Municipalidad desactivada; respuesta sin cuerpo.
@@ -300,7 +310,7 @@ paths:
         con metodo_ubicacion=pin_manual. Si la comuna no tiene cobertura responde 422 MUNICIPALIDAD_SIN_COBERTURA
         con el mensaje definido en el contrato; si no puede determinar la comuna, responde 422 UBICACION_NO_RESUELTA.
         Una calle no identificada puede quedar nula si la comuna cubierta sí se resuelve. La clasificación
-        vial oficial queda pendiente para H3 si no existe una fuente fiable.
+        vial oficial queda como evolución futura si no existe una fuente fiable.
       tags:
       - Ubicación
       x-bache0-phase: H2
@@ -883,13 +893,15 @@ paths:
         type: integer
         minimum: 1
     put:
-      summary: Corregir ubicación de un reporte
+      summary: Corregir ubicación de un reporte (NO IMPLEMENTADA)
       description: Solo administración municipal autorizada o superadministración. Actualiza las coordenadas,
         vuelve a resolver los metadatos y crea un evento de auditoría. La municipalidad no puede modificarse
         enviándola como dato libre.
       tags:
       - Reportes
-      x-bache0-phase: H3
+      x-bache0-phase: Evolución futura (no implementada en main)
+      x-bache0-implementada: false
+      x-bache0-nota: Propuesta de evolución futura; no existe la ruta en el servidor y queda fuera del alcance implementado.
       responses:
         '200':
           description: Ubicación actualizada.
@@ -953,12 +965,14 @@ paths:
         type: integer
         minimum: 1
     put:
-      summary: Asignar reporte a municipalidad
+      summary: Asignar reporte a municipalidad (NO IMPLEMENTADA)
       description: Solo superadministradores. Se utiliza para resolver reportes retenidos sin una asignación
         fiable. Debe verificar la municipalidad activa y registrar motivo/actor en auditoría.
       tags:
       - Reportes
-      x-bache0-phase: H3 / evolución
+      x-bache0-phase: Evolución futura (no implementada en main)
+      x-bache0-implementada: false
+      x-bache0-nota: Propuesta de evolución futura; no existe la ruta en el servidor y queda fuera del alcance implementado.
       responses:
         '200':
           description: Reporte asignado.
@@ -1022,12 +1036,14 @@ paths:
         type: integer
         minimum: 1
     get:
-      summary: Consultar historial de un reporte
-      description: Devuelve eventos de auditoría append-only. Los eventos se registran a partir de H2; esta
-        consulta se habilita en H3.
+      summary: Consultar historial de un reporte (NO IMPLEMENTADA)
+      description: Devuelve eventos de auditoría append-only. Los eventos ya se registran; esta
+        consulta es una propuesta de evolución futura, no implementada.
       tags:
       - Auditoría
-      x-bache0-phase: H3 / evolución
+      x-bache0-phase: Evolución futura (no implementada en main)
+      x-bache0-implementada: false
+      x-bache0-nota: Propuesta de evolución futura; no existe la ruta en el servidor y queda fuera del alcance implementado.
       responses:
         '200':
           description: Historial del reporte.
@@ -1077,7 +1093,8 @@ paths:
         autorizados para el reporte.
       tags:
       - Visión artificial
-      x-bache0-phase: H3
+      x-bache0-phase: H2 (implementada; incorporada después de la fecha original del hito)
+      x-bache0-implementada: true
       responses:
         '200':
           description: Lista de análisis.
@@ -1118,7 +1135,8 @@ paths:
         exista una fotografía. No determina por sí sola la prioridad final del reporte.
       tags:
       - Visión artificial
-      x-bache0-phase: H3
+      x-bache0-phase: H2 (implementada; incorporada después de la fecha original del hito)
+      x-bache0-implementada: true
       responses:
         '202':
           description: Análisis aceptado; pendiente de ejecución.
@@ -1185,7 +1203,8 @@ paths:
       description: Devuelve estado, modelo/proveedor y predicciones registradas. No genera otra inferencia.
       tags:
       - Visión artificial
-      x-bache0-phase: H3
+      x-bache0-phase: H2 (implementada; incorporada después de la fecha original del hito)
+      x-bache0-implementada: true
       responses:
         '200':
           description: Análisis encontrado.

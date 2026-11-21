@@ -1,122 +1,204 @@
 # Bache 0
 
-> Para las municipalidades que necesitan mayor visibilidad sobre el deterioro vial de su comuna, Bache 0 entrega una plataforma web que centraliza reportes ciudadanos georreferenciados y los transforma en información visual para facilitar la priorización de reparaciones viales.
+![Logo de Bache 0](src/assets/logo_bache0_azul_hd.png)
 
-## 👥 Equipo de Trabajo
+**Del reporte ciudadano a la gestión municipal.** Proyecto de Arquitectura de Desarrollo (Móvil y Web), INGT1003, Universidad Mayor, segundo semestre 2026.
 
-- **Elías Henríquez** — GitHub: [@eliashenriquez-gif](https://github.com/eliashenriquez-gif)
-- **Bastian Mansilla** — GitHub: [@bastianmansilla](https://github.com/bastianmansilla)
-- **David Ojeda** — GitHub: [@davidojeda-alt](https://github.com/davidojeda-alt)
+**Equipo:** Elías Henríquez, Bastián Mansilla y David Ojeda.
 
-## 🔗 Prototipo Navegable
-- **Módulo municipal:** [https://bache0.vercel.app/](https://bache0.vercel.app/) 
-- **Módulo ciudadano:** [https://bache0.vercel.app/reporte](https://bache0.vercel.app/reporte)
+Bache 0 permite que una persona reporte un desperfecto vial con **foto y ubicación confirmada**, sin crear una cuenta. La API verifica la cobertura, genera un folio y registra el reporte en PostgreSQL. Los funcionarios autorizados consultan y gestionan los reportes de su municipalidad. Un motor de prioridad explicable y un clasificador de imágenes local aportan información de apoyo; **no reemplazan la inspección humana**.
 
+## Estado, aplicaciones y documentación
 
-El prototipo corresponde a una misma aplicación web con dos módulos según el contexto de uso.
+- **Código de referencia:** rama [`main`](https://github.com/eliashenriquez-gif/bache0/tree/main).
+- **Interfaz web publicada:** [panel municipal](https://bache0.vercel.app/) y [formulario ciudadano](https://bache0.vercel.app/reporte). La interfaz publicada **no garantiza** que la API y PostgreSQL estén disponibles: para funcionar fuera del equipo de desarrollo se requiere una API HTTPS accesible y configurar `VITE_API_URL` en el despliegue.
+- **Hito 1:** [documento de propuesta](docs/Informe_HITO1_Documento_de_propuesta.pdf).
+- **Hito 2:** [documento técnico](docs/Bache0_Hito2_Documento_Tecnico.pdf), [modelo relacional](db/modelo_relacional.svg), [especificación OpenAPI](docs/openapi.yaml) y [contrato REST](docs/contrato-api-rest-v1.md).
+- **Postman Hito 2, demostración CRUD:** [`backend/postman/Bache0_Hito2_Demo_CRUD.postman_collection.json`](backend/postman/Bache0_Hito2_Demo_CRUD.postman_collection.json).
+- **Postman Hito 3, pruebas consolidadas:** [`backend/postman/Bache0_Hito3_Final.postman_collection.json`](backend/postman/Bache0_Hito3_Final.postman_collection.json), [entorno de ejemplo sin secretos](backend/postman/Bache0_Local.example.postman_environment.json) e [instrucciones específicas](docs/Postman_Hito3_Instrucciones.md).
 
-## 📄 Documentación
+> **Alcance:** se mantienen las colecciones históricas del equipo en `backend/` como evidencia; la colección CRUD del Hito 2 es la opción breve para demostrar dos recursos, y la final del Hito 3 cubre pruebas de integración y permisos. No ejecutes automáticamente las carpetas manuales de Postman sin prepararlas.
 
-- [Documento de propuesta](./docs/Documento_de_propuesta_comercial.pdf)
-- [Presentación](./docs/presentacion.pdf)
-- [Mapa del producto](./docs/Mapa%20de%20producto%20Bache%200.png)
-- [Diagrama de arquitectura](./docs/diagrama_arquitectura%20bache%200.png)
+## Arquitectura y estructura
 
-## ⚙️ Requisitos Previos
+**Monolito modular:** un backend Express con reglas de negocio separadas y una base PostgreSQL. La visión local usa un worker para no bloquear el flujo de reportes.
 
-Antes de ejecutar el proyecto, se debe contar con:
+```text
+Frontend React + Vite (src/)
+       |  HTTP /api/v1
+       v
+Rutas y middlewares -> controladores (backend/src/)
+       v
+Servicios (validaciones, ubicación, usuarios, prioridad, foto e IA)
+       v
+Repositorios (SQL parametrizado, transacciones y aislamiento municipal)
+       +--> PostgreSQL (db/schema.sql, db/seed.sql)
+       +--> Almacenamiento privado de fotografías (no se sube a Git)
+```
 
-- [Git](https://git-scm.com/)
-- [Node.js](https://nodejs.org/)
-- [Visual Studio Code](https://code.visualstudio.com/)
-- Un navegador web actualizado.
+Las cinco tablas son `municipalidades`, `usuarios`, `reportes`, `analisis_vision` y `auditoria_eventos`. El proyecto usa archivado/desactivación lógica y eventos de auditoría. **La foto no se guarda como binario en PostgreSQL**: se registra la referencia y sus metadatos.
 
-> **Nota:** npm se instala junto con Node.js, por lo que no es necesario instalarlo por separado.
+## Instalación local reproducible (Windows, macOS o Linux)
 
-## 🚀 Instalación y Ejecución
+### 1. Requisitos
 
-### 1. Clonar el repositorio
+- **Node.js 20 o superior** (incluye npm), **Git** y **PostgreSQL** instalado y ejecutándose.
+- Permisos para crear una base de datos PostgreSQL y ejecutar scripts SQL; en Windows puedes usar **pgAdmin** sin añadir `psql` al PATH.
+- Conexión a internet para resolver coordenadas con **Nominatim/OpenStreetMap**. La creación de reportes que requieren geocodificación puede fallar temporalmente si ese servicio no responde.
+- Opcional: **Postman** para ejecutar la demostración HTTP. La IA experimental RF-DETR/Roboflow **no es necesaria** para arrancar ni evaluar el flujo normal.
 
-```bash
+### 2. Clonar e instalar dependencias
+
+Desde una terminal en la carpeta donde quieras guardar el proyecto:
+
+```powershell
 git clone https://github.com/eliashenriquez-gif/bache0.git
-```
-
-### 2. Entrar a la carpeta del proyecto
-
-```bash
 cd bache0
+npm ci
+cd backend
+npm ci
 ```
 
-### 3. Instalar las dependencias
+Los siguientes comandos de instalación del servidor se ejecutan **desde `bache0/backend`**, salvo que se indique lo contrario.
 
-```bash
-npm install
+### 3. Crear una base aislada para la evaluación
+
+Usa `bache0_profesor` para no modificar la base de datos de desarrollo `bache0_dev`. La base debe estar **vacía** antes de importar el esquema.
+
+**Opción A — Windows con pgAdmin (recomendada si no tienes `psql`):**
+
+1. Inicia PostgreSQL, abre pgAdmin y conéctate con un usuario que pueda crear bases de datos.
+2. En **Databases → Create → Database**, crea `bache0_profesor` con un propietario que tenga permisos para crear tablas.
+3. Selecciona esa base, abre **Query Tool**, ejecuta el archivo `db/schema.sql` completo y comprueba que termine sin errores.
+4. En la misma base ejecuta **después** `db/seed.sql`. No inviertas el orden.
+
+**Opción B — terminal con herramientas de PostgreSQL en el PATH:**
+
+Desde la carpeta `bache0/backend`, usando `postgres` **solo como ejemplo** de un usuario con permisos (reemplázalo si tienes otro):
+
+```powershell
+createdb -h localhost -U postgres bache0_profesor
+psql -h localhost -U postgres -d bache0_profesor -f ../db/schema.sql
+psql -h localhost -U postgres -d bache0_profesor -f ../db/seed.sql
 ```
 
-### 4. Ejecutar el proyecto
+Si se te solicita una clave, es la de **tu propio usuario de PostgreSQL**. `seed.sql` incluye cuatro municipalidades de demostración: **Estación Central (ID 1), La Pintana (ID 2), El Bosque (ID 3)** y **Providencia (ID 4, sin cobertura activa)**, además de reportes ficticios. No trae usuarios ni contraseñas.
 
-```bash
+### 4. Configurar el backend sin publicar secretos
+
+Desde `bache0/backend`, crea una configuración privada partiendo de la plantilla de la raíz:
+
+```powershell
+# PowerShell (Windows)
+Copy-Item ..\.env.example .env
+```
+
+En macOS/Linux el equivalente es `cp ../.env.example .env`. En `backend/.env`, completa al menos:
+
+```dotenv
+PORT=3000
+PGHOST=localhost
+PGPORT=5432
+PGDATABASE=bache0_profesor
+PGUSER=postgres
+PGPASSWORD=REEMPLAZAR_POR_TU_CLAVE_LOCAL
+JWT_SECRET=REEMPLAZAR_POR_UN_SECRETO_LARGO_Y_ALEATORIO
+SEED_SUPERADMIN_EMAIL=superadmin@example.test
+SEED_SUPERADMIN_PASSWORD=REEMPLAZAR_POR_CLAVE_DE_PRUEBA_MIN_12
+SEED_SUPERADMIN_NOMBRE=Superadministrador de evaluación
+```
+
+Esos valores de `PGUSER` y correo son **ejemplos**, no accesos publicados. Usa el usuario PostgreSQL propietario de la base creada y define **contraseñas nuevas de demostración**, de 12–128 caracteres para los usuarios. Genera el `JWT_SECRET` (mínimo 32 caracteres) con:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+Pega la cadena generada en `backend/.env`, **no** en el repositorio. La clave de JWT no es la contraseña de inicio de sesión. `backend/.env` está excluido por `.gitignore`; las dos plantillas `.env.example` no deben contener secretos reales. Si vas a abrir React desde otro origen, configura `CORS_ORIGINS` (plural) en el backend. `VITE_API_URL` pertenece al **entorno del frontend**, sin el sufijo `/api/v1`; el código lo agrega.
+
+### 5. Fotos de demostración, verificaciones y servidor
+
+Con la base creada y `backend/.env` configurado, desde `bache0/backend`:
+
+```powershell
+npm run seed:photos
+npm run smoke:db
+npm test
+npm start
+```
+
+- `seed:photos` copia las imágenes ficticias versionadas en `backend/fixtures/seed-photos/` a la carpeta privada de pruebas del servidor.
+- `smoke:db` comprueba conexión y esquema; `npm test` ejecuta la suite automatizada. Revisa el resultado real de tu ejecución: no asumas que un número histórico de pruebas equivale al resultado de hoy.
+- `npm start` levanta Express en **http://localhost:3000**. En modo de desarrollo (sin `NODE_ENV=production`) crea el **primer superadministrador** a partir de `SEED_SUPERADMIN_*`, solo si no hay otro ya creado.
+- Abre **http://localhost:3000/health**: debe responder HTTP **200** con `{"status":"ok", ...}`. Si falla, revisa la terminal antes de continuar.
+
+### 6. Preparar las cuatro cuentas municipales de evaluación
+
+**Con el backend ya en marcha**, abre **otra terminal** ubicada en `bache0/backend`. Completa y descomenta en tu archivo privado `backend/.env` las ocho variables `BACHE0_DEMO_*_EMAIL` y `BACHE0_DEMO_*_PASSWORD` que figuran en `.env.example`; utiliza correos ficticios y claves exclusivas para la evaluación.
+
+```powershell
+node --env-file=.env scripts/preparar-usuarios-evaluacion.mjs
+```
+
+El script usa la API con la cuenta superadministradora y prepara administradores municipales de **Estación Central, La Pintana y El Bosque**, más un **inspector de Estación Central**. Debe utilizarse **solo en una base de evaluación nueva**. No publica ni muestra contraseñas. Conserva las credenciales privadas para el profesor en un canal separado del repositorio.
+
+### 7. Iniciar el frontend
+
+Abre una **tercera terminal**, ahora en la raíz `bache0/`:
+
+```powershell
 npm run dev
 ```
 
-Vite mostrará en la terminal la dirección local donde se encuentra disponible la aplicación.
+Vite indicará la dirección local, normalmente **http://localhost:5173**. El frontend usa `http://localhost:3000` por defecto. Si el backend está en otra dirección, define **`VITE_API_URL` con el origen del servidor**, por ejemplo `http://localhost:3000`, y reinicia Vite. No incluyas `/api/v1` en esa variable. El teléfono **no puede conectarse al `localhost` del notebook**; para una demostración desde celular necesitas que la API sea accesible desde el dispositivo, preferiblemente mediante HTTPS y CORS correcto. No publiques un túnel temporal como si fuera una URL permanente.
 
-## 💻 Tecnologías
+## Pruebas Postman y demostración Hito 2
 
-- React
-- Vite
-- JavaScript
-- HTML
-- CSS
+En Postman importa **`backend/postman/Bache0_Hito2_Demo_CRUD.postman_collection.json`**. En las variables de la colección establece `baseUrl=http://localhost:3000/api/v1`, `superadmin_email` y `superadmin_password`, usando los valores **locales y privados** de `SEED_SUPERADMIN_*`.
 
-## 📌 Estado del proyecto
+Ejecuta en orden: **0 Login**; **1.1–1.5 CRUD de usuarios (inspector ficticio)**; **2.1–2.6 CRUD de reportes y comprobación de archivado lógico**. En la petición **2.1**, selecciona manualmente la foto `backend/fixtures/seed-photos/demo-report-001.png` (ruta dentro del repositorio). Esta petición depende de Nominatim y de que el punto geográfico tenga cobertura. No ejecutes automáticamente varias veces una creación sin comprobar la base.
 
-Este repositorio corresponde al Hito 1 del proyecto semestral.
+En la demostración técnica muestra **POST 201 → GET 200 → PUT/PATCH 200 → DELETE 204** y una consulta posterior que evidencie la persistencia o el archivado/desactivación. Las peticiones de la colección generan **datos ficticios**. Para Hito 3, importa además la colección de 73 solicitudes `backend/postman/Bache0_Hito3_Final.postman_collection.json` y su entorno de ejemplo; revisa `docs/Postman_Hito3_Instrucciones.md` para las carpetas que se ejecutan manualmente y las credenciales requeridas.
 
-La versión actual se concentra principalmente en el Front-End y en la validación de la experiencia de usuario. El panel municipal utiliza datos simulados para representar escenarios de uso.
+**Conservación del trabajo del equipo:** los archivos históricos `backend/Bache0_Hito2.postman_collection.json` (usuarios/autenticación) y `backend/Bache0_Hito3.postman_collection.json` no deben borrarse. La colección histórica de Hito 2 utiliza municipalidades antiguas (IDs 7 y 9), por lo que no se debe ejecutar sin adaptar su entorno a una base compatible. La colección final de Hito 3 ya agrupa múltiples frentes de pruebas, aunque no reemplaza todas las solicitudes históricas.
 
-El backend, la persistencia de datos y el componente de visión artificial corresponden a etapas posteriores de desarrollo.
+## Contrato REST, seguridad y roles
 
-## 📁 Estructura del repositorio
+La API usa el prefijo **`/api/v1`**, JSON `snake_case` y códigos HTTP específicos. El contrato detallado, con rutas, cuerpos, respuestas, errores y criterios de versión, está en `docs/contrato-api-rest-v1.md` y `docs/openapi.yaml`. **No todas las rutas previstas del contrato están implementadas**: en particular, las consultas GET de municipalidades se documentan como no operativas.
 
-```text
-bache0/
-├── docs/
-│   ├── Documento_de_propuesta_comercial.pdf
-│   ├── presentacion.pdf
-│   ├── Mapa de producto Bache 0.png
-│   └── diagrama_arquitectura bache 0.png
-├── src/
-├── public/
-├── package.json
-├── package-lock.json
-├── README.md
-└── .gitignore
-```
+| Rol | Permisos relevantes |
+|---|---|
+| `superadministrador` | Puede administrar usuarios y reportes de todas las municipalidades. |
+| `administrador_municipal` | Gestiona reportes de su municipalidad y cuentas de inspector de su mismo ámbito. |
+| `inspector` | Puede consultar reportes y actualizar el estado, solo dentro de su municipio. |
+| Ciudadano (invitado) | Puede crear un reporte con foto y ubicación, sin cuenta. |
 
+La API valida el JWT (HS256, expiración de 30 minutos), consulta el usuario vigente en la base, limita intentos, restringe fotografías por autorización y registra auditoría. Las contraseñas se guardan con hash **Argon2id**. La IA **local** mantiene las fotos en el servidor; la opción experimental RF-DETR/Roboflow requiere configuración adicional y puede utilizar un proveedor externo.
 
+## Fallas frecuentes y recuperación
 
----
+| Síntoma | Qué revisar |
+|---|---|
+| `psql` / `createdb` no se reconoce | Usa pgAdmin, o agrega la carpeta `bin` de PostgreSQL al PATH. No necesitas cambiar el código. |
+| El backend no arranca por `JWT_SECRET` | Genera un secreto aleatorio de al menos 32 caracteres y guárdalo **solo** en `backend/.env`. |
+| `No se pudo crear el superadministrador` | Revisa `SEED_SUPERADMIN_*`, que la clave tenga 12–128 caracteres y que la BD esté inicializada. |
+| Error de contraseña o conexión PostgreSQL | Comprueba que PostgreSQL esté iniciado y que `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGHOST` y `PGPORT` coincidan con la base creada. |
+| `relation "usuarios" does not exist` | Se está usando una base equivocada o todavía no se ejecutó `db/schema.sql` en ella. |
+| `401` al consultar con Postman | Haz login, revisa que se guardó `access_token` y que estás usando el token correcto. |
+| `403` o `404` en recursos de otra comuna | Es esperable si el rol o la municipalidad no tiene acceso: no desactives las protecciones para forzar la prueba. |
+| `422` al reportar un punto | Ubicación no resuelta o comuna sin cobertura; prueba con las coordenadas de demostración y comprueba internet/Nominatim. |
+| `503` al geocodificar | Dependencia externa no disponible; reintenta más tarde sin saltarse las validaciones de cobertura. |
+| `429` al enviar repetidamente | Espera la ventana del límite por IP; no cambies el límite solo para ocultar una falla de prueba. |
+| Fotografías semilla no cargan | Ejecuta `npm run seed:photos` dentro de `backend` y verifica la ruta privada de almacenamiento. |
+| El panel carga pero no hay reportes | Revisa `VITE_API_URL`, CORS, sesión, cobertura y registros existentes en la base. |
+| El formulario funciona en el PC pero falla desde el celular | El `localhost` del teléfono no es el del notebook. Hace falta una API alcanzable desde el móvil. |
 
-## Módulo Ciudadano (David)
+## Reproducibilidad, copias y datos personales
 
-### Reglas de Negocio - Fotografías
-- Formatos permitidos: JPEG, PNG y WebP.
-- Tamaño máximo: 10 MB.
-- Seguridad: Se valida la extensión del archivo y se almacena con un nombre UUID para evitar colisiones.
-- Almacenamiento: `backend/uploads/`.
+GitHub incluye código, esquema, migraciones, semillas ficticias, pruebas y documentación. **No sincroniza** automáticamente la base PostgreSQL ni las fotografías subidas por usuarios. Para respaldar el sistema necesitas tanto la base (`pg_dump` o respaldo desde pgAdmin) como la carpeta privada `backend/var/storage/reports/`. Nunca publiques respaldos con usuarios, hashes o datos personales, archivos `.env`, JWT, tokens Postman ni fotos reales.
 
-### Reglas de Negocio - Ubicación
-- El ciudadano debe confirmar la ubicación moviendo el pin en el mapa (Leaflet).
-- La resolución de calle y comuna se realiza mediante geocodificación inversa (OpenStreetMap / Nominatim).
-- Cobertura actual: La Pintana, Puente Alto, Santiago, San Bernardo.
-- Errores manejados:
-  - `UBICACION_NO_RESUELTA` (404).
-  - `COMUNA_SIN_COBERTURA` (403).
-  - `PROVEEDOR_CAIDO` (503).
+El sistema trata fotografías potencialmente identificables, ubicación del incidente y nombre/correo de funcionarios. Las pruebas del repositorio deben usar **datos ficticios**. Para las decisiones técnicas y limitaciones de visión artificial consulta `docs/vision-ia-hito3.md`.
 
-### Flujo del Reporte Ciudadano
-1. El ciudadano (invitado) toma una foto.
-2. Se obtiene el GPS automático o se ubica manualmente en el mapa.
-3. Se envía `multipart/form-data` a `POST /api/v1/reportes`.
-4. Se genera un folio único (`PH-YYYY-XXXX`) y se devuelve confirmación.
+## Próxima entrega (Hito 3)
+
+La pauta pide la integración funcional, bitácora, documentación final, manual de instalación/uso y **video de hasta dos minutos** accesible desde el README. Esos enlaces deben añadirse cuando sus archivos definitivos y el video estén realmente publicados; no se declaran entregados anticipadamente.

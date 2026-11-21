@@ -36,7 +36,7 @@
 13. Las fotos se transmiten como archivo `multipart/form-data`. PostgreSQL conserva metadatos y una referencia, no el binario de la imagen.
 14. Reportes y usuarios se archivan/desactivan lógicamente; no se borran físicamente a través del CRUD normal.
 15. Las entidades modificables tienen `created_at` y `updated_at`. PostgreSQL actualiza `updated_at` mediante trigger. Además, las mutaciones relevantes crean eventos de auditoría independientes que no se sobrescriben.
-16. La visión artificial se integra después mediante `VisionService`, prevista para Hito 3. Ni el proveedor ni el modelo quedan fijados en este contrato, y la IA no decide por sí sola la severidad o prioridad final.
+16. La visión artificial está implementada mediante `VisionService` (incorporada después de la fecha original del Hito 2). Este contrato no fija el proveedor ni el modelo, y la IA no decide por sí sola la severidad o prioridad final.
 17. La prioridad calculada se expone en los reportes como `prioridad`, `motivos` y `version_reglas`. Los tres campos son de solo lectura para el cliente: los escribe exclusivamente el motor interno autorizado. Antes de un cálculo real, `prioridad` y `version_reglas` son `null`, y `motivos` es un arreglo vacío. Nunca se rellenan con resultados ficticios.
 
 ## 3. Arquitectura y responsabilidades de las capas
@@ -50,7 +50,7 @@ React ciudadano / React municipal
               |
            Services
        |       |         |
- ReportService LocationService VisionService (H3)
+ ReportService LocationService VisionService
        |       |         |
  Repositories / adaptadores externos
               |
@@ -155,11 +155,13 @@ Todos los endpoints están definidos con esquemas completos en `openapi.yaml`. E
 | Método y ruta | Acceso | Etapa | Regla principal |
 |---|---|---|---|
 | `GET /health` | Público | H2 | Comprueba que el proceso API responda; no expone configuración ni secretos. |
-| `GET /api/v1/municipalidades` | Público para municipalidades activas con servicio habilitado; superadmin puede incluir las inactivas | H2 | Lista el catálogo de cobertura para la resolución geográfica. No permite al ciudadano elegir libremente una municipalidad de destino. |
-| `GET /api/v1/municipalidades/{id}` | Público si está activa | H2 | Devuelve información general de la municipalidad activa. |
-| `POST /api/v1/municipalidades` | Superadmin | H3/evolución | Crea una municipalidad y define si el servicio está habilitado. |
-| `PUT /api/v1/municipalidades/{id}` | Superadmin | H3/evolución | Actualiza el registro; se conserva historia. |
-| `DELETE /api/v1/municipalidades/{id}` | Superadmin | H3/evolución | Desactiva lógicamente, no elimina físicamente. |
+| `GET /api/v1/municipalidades` | Público para municipalidades activas con servicio habilitado; superadmin puede incluir las inactivas | Evolución futura (**no implementada**) | Lista el catálogo de cobertura para la resolución geográfica. No permite al ciudadano elegir libremente una municipalidad de destino. |
+| `GET /api/v1/municipalidades/{id}` | Público si está activa | Evolución futura (**no implementada**) | Devuelve información general de la municipalidad activa. |
+| `POST /api/v1/municipalidades` | Superadmin | Evolución futura (**no implementada**) | Crea una municipalidad y define si el servicio está habilitado. |
+| `PUT /api/v1/municipalidades/{id}` | Superadmin | Evolución futura (**no implementada**) | Actualiza el registro; se conserva historia. |
+| `DELETE /api/v1/municipalidades/{id}` | Superadmin | Evolución futura (**no implementada**) | Desactiva lógicamente, no elimina físicamente. |
+
+> **Estado al 15-11-2026:** las ocho operaciones marcadas como evolución futura (`GET /municipalidades`, `GET /municipalidades/{id}`, `POST`, `PUT` y `DELETE` de municipalidades, `PUT /reportes/{id}/ubicacion`, `PUT /reportes/{id}/asignacion` y `GET /reportes/{id}/historial`) **no existen en el servidor**. Son propuestas fuera del alcance implementado. La cobertura municipal se resuelve internamente mediante `POST /api/v1/ubicaciones/resolver`.
 
 ### 7.2 Ubicación y autenticación municipal
 
@@ -183,9 +185,9 @@ No existen `POST /auth/registro`, `GET /usuarios/me/reportes` ni endpoints de lo
 | `PUT /api/v1/reportes/{id}` | Admin municipal de su municipio/superadmin | H2 | Actualiza los campos de gestión permitidos y genera auditoría. |
 | `PATCH /api/v1/reportes/{id}/estado` | Inspector/admin municipal de su municipio/superadmin | H2 | Cambia estado operativo a `pendiente`, `en_revision` o `reparado`. |
 | `DELETE /api/v1/reportes/{id}` | Admin municipal de su municipio/superadmin | H2 | Archivo lógico (`archivado_at`); respuesta `204`, sin borrar historia. |
-| `PUT /api/v1/reportes/{id}/ubicacion` | Admin municipal de su municipio/superadmin | H3 | Corrige coordenadas/metadatos y vuelve a validar cobertura; no permite cambiar libremente la municipalidad. |
-| `PUT /api/v1/reportes/{id}/asignacion` | Superadmin | H3/evolución | Reasigna solo con motivo justificado y evento de auditoría. |
-| `GET /api/v1/reportes/{id}/historial` | Admin municipal del ámbito/superadmin | H3/evolución | Consulta eventos append-only. Los eventos empiezan a registrarse durante H2. |
+| `PUT /api/v1/reportes/{id}/ubicacion` | Admin municipal de su municipio/superadmin | Evolución futura (**no implementada**) | Corrige coordenadas/metadatos y vuelve a validar cobertura; no permite cambiar libremente la municipalidad. |
+| `PUT /api/v1/reportes/{id}/asignacion` | Superadmin | Evolución futura (**no implementada**) | Reasigna solo con motivo justificado y evento de auditoría. |
+| `GET /api/v1/reportes/{id}/historial` | Admin municipal del ámbito/superadmin | Evolución futura (**no implementada**) | Consulta eventos append-only. Los eventos empiezan a registrarse durante H2. |
 
 ### 7.4 Usuarios municipales
 
@@ -201,9 +203,9 @@ No existen `POST /auth/registro`, `GET /usuarios/me/reportes` ni endpoints de lo
 
 | Método y ruta | Acceso | Etapa | Regla principal |
 |---|---|---|---|
-| `POST /api/v1/reportes/{id}/analisis-vision` | Usuarios municipales autorizados | H3 | Solicita análisis asíncrono; devuelve `202 Accepted`. |
-| `GET /api/v1/reportes/{id}/analisis-vision` | Usuarios municipales autorizados | H3 | Lista ejecuciones de visión asociadas al reporte. |
-| `GET /api/v1/analisis-vision/{id}` | Usuarios municipales autorizados | H3 | Devuelve estado, modelo/versión, detecciones y errores controlados. |
+| `POST /api/v1/reportes/{id}/analisis-vision` | Usuarios municipales autorizados | H2 (implementada; incorporada después de la fecha original) | Solicita análisis asíncrono; devuelve `202 Accepted`. |
+| `GET /api/v1/reportes/{id}/analisis-vision` | Usuarios municipales autorizados | H2 (implementada; incorporada después de la fecha original) | Lista ejecuciones de visión asociadas al reporte. |
+| `GET /api/v1/analisis-vision/{id}` | Usuarios municipales autorizados | H2 (implementada; incorporada después de la fecha original) | Devuelve estado, modelo/versión, detecciones y errores controlados. |
 
 ## 8. Convención de respuesta y errores
 
@@ -302,7 +304,7 @@ Para bases existentes, aplicar `db/migrations/20261109_001_reportes_prioridad_mo
 - `reportes.archivado_at` se establece al archivar; `usuarios.activo=false` al desactivar una cuenta/municipalidad.
 - `auditoria_eventos` tiene `created_at`, pero no `updated_at`: un evento representa un hecho inmutable. La API ordinaria no puede editar ni borrar eventos.
 - En H2 se registra creación de reportes, cambios de reportes/estado, archivo de reportes, altas/cambios/desactivaciones de usuarios y cambios de configuración municipal. El actor puede ser nulo para creación ciudadana invitada; se usa `tipo_actor=invitado`.
-- Guardar solo los cambios relevantes, sin contraseñas, hashes, tokens, secretos ni imágenes completas en el JSON de auditoría. La consulta del historial se habilita en H3, pero el registro comienza en H2.
+- Guardar solo los cambios relevantes, sin contraseñas, hashes, tokens, secretos ni imágenes completas en el JSON de auditoría. La consulta del historial (`GET /reportes/{id}/historial`) es una propuesta de evolución futura no implementada; el registro de eventos ya está operativo.
 
 ## 10. Validación, consistencia e idempotencia
 
@@ -316,13 +318,13 @@ Para bases existentes, aplicar `db/migrations/20261109_001_reportes_prioridad_mo
 - El backend no debe guardar reportes duplicados por doble clic: el frontend desactiva temporalmente el botón durante el envío y el backend puede aceptar `Idempotency-Key` en `POST /reportes` para proteger reintentos. Si se soporta, la misma clave con el mismo contenido devuelve el resultado previo; con contenido distinto devuelve `409`.
 - No se devuelve el identificador de un recurso de otra municipalidad a un actor municipal.
 
-## 11. Visión artificial (Hito 3)
+## 11. Visión artificial (implementada)
 
-El backend invocará un `VisionService` desacoplado del proveedor. La solicitud `POST /reportes/{id}/analisis-vision` devuelve `202 Accepted` con el ID y estado `pendiente`; la consulta recupera `pendiente`, `procesando`, `completado` o `fallido`, proveedor, modelo, versión, detecciones, `analizado_at` y código de error controlado. El repositorio `visionAnalysisRepository` proporciona persistencia transaccional y consultas por análisis/reporte, siempre verificando el ámbito municipal del reporte asociado y registrando el evento de auditoría.
+El backend invoca un `VisionService` desacoplado del proveedor. La solicitud `POST /reportes/{id}/analisis-vision` devuelve `202 Accepted` con el ID y estado `pendiente`; la consulta recupera `pendiente`, `procesando`, `completado` o `fallido`, proveedor, modelo, versión, detecciones, `analizado_at` y código de error controlado. El repositorio `visionAnalysisRepository` proporciona persistencia transaccional y consultas por análisis/reporte, siempre verificando el ámbito municipal del reporte asociado y registrando el evento de auditoría.
 
 El resultado de visión y la prioridad son conceptos distintos. La prioridad se persiste en `reportes.prioridad`, sus razones estructuradas en `reportes.motivos` (JSONB) y la versión del motor en `reportes.version_reglas`. Estos campos permanecen sin evaluar hasta que el motor de prioridad real los calcule; no se deben rellenar con valores de demostración ni derivar automáticamente una prioridad solo a partir de la respuesta de visión.
 
-Una detección puede incluir etiqueta, confianza entre 0 y 1 y caja delimitadora normalizada. No representa automáticamente profundidad, severidad normativa ni prioridad de reparación. El modelo y proveedor se seleccionan después de pruebas comparativas y revisión de licencias, costo, límites, tratamiento de fotos y rendimiento. El ciudadano no espera la inferencia para enviar el reporte.
+Una detección puede incluir etiqueta, confianza entre 0 y 1 y caja delimitadora normalizada. No representa automáticamente profundidad, severidad normativa ni prioridad de reparación. El modelo y proveedor se seleccionaron tras pruebas comparativas y revisión de licencias, costo, límites, tratamiento de fotos y rendimiento. El ciudadano no espera la inferencia para enviar el reporte.
 
 ## 12. Etapas de implementación
 
@@ -337,14 +339,15 @@ Una detección puede incluir etiqueta, confianza entre 0 y 1 y caja delimitadora
 - Fotos en almacenamiento local protegido detrás de `StorageService`; `.env`, `.env.example` y `.gitignore` correctos.
 - Validación y error uniforme, timestamps automáticos y creación de eventos de auditoría en mutaciones relevantes.
 - Colección importable de API y documento técnico con la tabla que coincide con OpenAPI.
+- Visión artificial mediante `VisionService` y sus tres rutas de análisis, incorporadas después de la fecha original del hito y operativas en `main`.
 
-### Hito 3 / evolución
+### Evolución futura (no implementada, fuera del alcance actual)
 
 - Clasificación vial con fuente geográfica adecuada y mejoras de corrección de ubicación.
-- Consulta del historial de auditoría, controles operacionales adicionales y almacenamiento cloud.
-- Visión artificial mediante `VisionService` después de evaluar un modelo/proveedor.
+- Catálogo de municipalidades (consulta y administración), reasignación de reportes y consulta del historial de auditoría.
+- Controles operacionales adicionales y almacenamiento cloud.
 
-El estado de etapa es un plan de implementación, no permiso para fingir que una ruta futura ya funciona. Si algo queda pendiente, se documenta como tal.
+Las propuestas de evolución futura no son compromisos de entrega ni permiso para fingir que una ruta inexistente ya funciona: se documentan como no implementadas.
 
 ## 13. Criterios para declarar el contrato aceptado
 
@@ -356,7 +359,7 @@ El estado de etapa es un plan de implementación, no permiso para fingir que una
 - Un funcionario municipal no puede consultar/alterar reportes de otra municipalidad.
 - Las fotos se validan, se almacenan fuera del directorio público y se sirven con autorización.
 - `created_at`/`updated_at` son consistentes y cada mutación relevante crea evento de auditoría.
-- Las rutas H3 están marcadas como futuras y no se presentan como implementadas.
+- Las rutas de evolución futura están marcadas como no implementadas y no se presentan como operativas.
 - La tabla del informe técnico coincide con OpenAPI.
 
 **Este documento define el contrato; no certifica que los endpoints estén implementados. La aceptación operativa requiere ejecutar la aplicación, levantar PostgreSQL desde cero y pasar las pruebas CRUD y de errores en el entorno local.**
