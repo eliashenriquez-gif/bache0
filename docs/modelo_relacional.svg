@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-5 -5 628 402" width="1256" height="804" font-family="Poppins, Arial, sans-serif" xmlns:c2pa="http://c2pa.org/manifest">
+<defs><filter id="sh" x="-5%" y="-5%" width="110%" height="115%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="#0A1F5C" flood-opacity=".14"/></filter></defs>
+<rect x="-5" y="-5" width="628" height="402" fill="#fff"/>
+<g filter="url(#sh)"><rect x="0" y="0" width="178" height="132.8" rx="6" fill="#fff" stroke="#DCE3F1"/></g>
+<path d="M0,6 a6,6 0 0 1 6,-6 h166 a6,6 0 0 1 6,6 v20 h-178 z" fill="#0033A0"/>
+<text x="9" y="12.5" font-size="10" font-weight="700" fill="#fff">usuarios</text>
+<text x="9" y="21.5" font-size="5.6" fill="#E6EDFF" letter-spacing=".6">ACCESO DE FUNCIONARIOS</text>
+<rect x="1" y="29.0" width="176" height="14.4" fill="#F6F8FD"/>
+<rect x="5" y="32.0" width="13" height="8.4" rx="2" fill="#D4F1E8"/><text x="11.5" y="38.0" text-anchor="middle" font-size="5.6" font-weight="700" fill="#0A6B52">PK</text>
+<text x="23" y="39.0" font-size="7.6" font-weight="600" fill="#0A1F5C">id</text>
+<text x="172" y="39.0" text-anchor="end" font-size="6.2" fill="#5B6577">INTEGER</text>
+<rect x="5" y="46.4" width="13" height="8.4" rx="2" fill="#DCE6FB"/><text x="11.5" y="52.4" text-anchor="middle" font-size="5.6" font-weight="700" fill="#1F3F9C">FK</text>
+<text x="23" y="53.4" font-size="7.6" font-weight="600" fill="#0A1F5C">municipalidad_id</text>
+<text x="172" y="53.4" text-anchor="end" font-size="6.2" fill="#5B6577">INTEGER · NULL</text>
+<rect x="1" y="57.8" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="23" y="67.8" font-size="7.6" fill="#0A1F5C">nombre_completo</text>
+<text x="172" y="67.8" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(150)</text>
+<rect x="5" y="75.2" width="13" height="8.4" rx="2" fill="#FFF1C7"/><text x="11.5" y="81.2" text-anchor="middle" font-size="5.6" font-weight="700" fill="#7A5900">UQ</text>
+<text x="23" y="82.2" font-size="7.6" font-weight="600" fill="#0A1F5C">email_normalizado</text>
+<text x="172" y="82.2" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(254)</text>
+<rect x="1" y="86.6" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="23" y="96.6" font-size="7.6" fill="#0A1F5C">password_hash</text>
+<text x="172" y="96.6" text-anchor="end" font-size="6.2" fill="#5B6577">TEXT (Argon2id)</text>
+<text x="23" y="111.0" font-size="7.6" fill="#0A1F5C">rol</text>
+<text x="172" y="111.0" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(32)</text>
+<rect x="1" y="115.4" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="23" y="125.4" font-size="7.6" fill="#0A1F5C">activo</text>
+<text x="172" y="125.4" text-anchor="end" font-size="6.2" fill="#5B6577">BOOLEAN</text>
+<g filter="url(#sh)"><rect x="220" y="0" width="178" height="132.8" rx="6" fill="#fff" stroke="#DCE3F1"/></g>
+<path d="M220,6 a6,6 0 0 1 6,-6 h166 a6,6 0 0 1 6,6 v20 h-178 z" fill="#0E9AA7"/>
+<text x="229" y="12.5" font-size="10" font-weight="700" fill="#fff">municipalidades</text>
+<text x="229" y="21.5" font-size="5.6" fill="#E6EDFF" letter-spacing=".6">COBERTURA TERRITORIAL</text>
+<rect x="221" y="29.0" width="176" height="14.4" fill="#F6F8FD"/>
+<rect x="225" y="32.0" width="13" height="8.4" rx="2" fill="#D4F1E8"/><text x="231.5" y="38.0" text-anchor="middle" font-size="5.6" font-weight="700" fill="#0A6B52">PK</text>
+<text x="243" y="39.0" font-size="7.6" font-weight="600" fill="#0A1F5C">id</text>
+<text x="392" y="39.0" text-anchor="end" font-size="6.2" fill="#5B6577">INTEGER</text>
+<text x="243" y="53.4" font-size="7.6" fill="#0A1F5C">nombre</text>
+<text x="392" y="53.4" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(150)</text>
+<rect x="221" y="57.8" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="243" y="67.8" font-size="7.6" fill="#0A1F5C">comuna</text>
+<text x="392" y="67.8" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(100)</text>
+<text x="243" y="82.2" font-size="7.6" fill="#0A1F5C">region</text>
+<text x="392" y="82.2" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(100)</text>
+<rect x="221" y="86.6" width="176" height="14.4" fill="#F6F8FD"/>
+<rect x="225" y="89.6" width="13" height="8.4" rx="2" fill="#FFF1C7"/><text x="231.5" y="95.6" text-anchor="middle" font-size="5.6" font-weight="700" fill="#7A5900">UQ</text>
+<text x="243" y="96.6" font-size="7.6" font-weight="600" fill="#0A1F5C">comuna_key</text>
+<text x="392" y="96.6" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(100)</text>
+<text x="243" y="111.0" font-size="7.6" fill="#0A1F5C">activa</text>
+<text x="392" y="111.0" text-anchor="end" font-size="6.2" fill="#5B6577">BOOLEAN</text>
+<rect x="221" y="115.4" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="243" y="125.4" font-size="7.6" fill="#0A1F5C">servicio_activo</text>
+<text x="392" y="125.4" text-anchor="end" font-size="6.2" fill="#5B6577">BOOLEAN</text>
+<g filter="url(#sh)"><rect x="220" y="168" width="178" height="176.0" rx="6" fill="#fff" stroke="#DCE3F1"/></g>
+<path d="M220,174 a6,6 0 0 1 6,-6 h166 a6,6 0 0 1 6,6 v20 h-178 z" fill="#0A8077"/>
+<text x="229" y="180.5" font-size="10" font-weight="700" fill="#fff">reportes</text>
+<text x="229" y="189.5" font-size="5.6" fill="#E6EDFF" letter-spacing=".6">INCIDENTES GEORREFERENCIADOS</text>
+<rect x="221" y="197.0" width="176" height="14.4" fill="#F6F8FD"/>
+<rect x="225" y="200.0" width="13" height="8.4" rx="2" fill="#D4F1E8"/><text x="231.5" y="206.0" text-anchor="middle" font-size="5.6" font-weight="700" fill="#0A6B52">PK</text>
+<text x="243" y="207.0" font-size="7.6" font-weight="600" fill="#0A1F5C">id</text>
+<text x="392" y="207.0" text-anchor="end" font-size="6.2" fill="#5B6577">INTEGER</text>
+<rect x="225" y="214.4" width="13" height="8.4" rx="2" fill="#DCE6FB"/><text x="231.5" y="220.4" text-anchor="middle" font-size="5.6" font-weight="700" fill="#1F3F9C">FK</text>
+<text x="243" y="221.4" font-size="7.6" font-weight="600" fill="#0A1F5C">municipalidad_id</text>
+<text x="392" y="221.4" text-anchor="end" font-size="6.2" fill="#5B6577">INTEGER</text>
+<rect x="221" y="225.8" width="176" height="14.4" fill="#F6F8FD"/>
+<rect x="225" y="228.8" width="13" height="8.4" rx="2" fill="#FFF1C7"/><text x="231.5" y="234.8" text-anchor="middle" font-size="5.6" font-weight="700" fill="#7A5900">UQ</text>
+<text x="243" y="235.8" font-size="7.6" font-weight="600" fill="#0A1F5C">folio</text>
+<text x="392" y="235.8" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(32)</text>
+<text x="243" y="250.2" font-size="7.6" fill="#0A1F5C">latitud · longitud</text>
+<text x="392" y="250.2" text-anchor="end" font-size="6.2" fill="#5B6577">NUMERIC(9,6)</text>
+<rect x="221" y="254.6" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="243" y="264.6" font-size="7.6" fill="#0A1F5C">severidad · estado</text>
+<text x="392" y="264.6" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR</text>
+<text x="243" y="279.0" font-size="7.6" fill="#0A1F5C">prioridad</text>
+<text x="392" y="279.0" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(20) · NULL</text>
+<rect x="221" y="283.4" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="243" y="293.4" font-size="7.6" fill="#0A1F5C">motivos</text>
+<text x="392" y="293.4" text-anchor="end" font-size="6.2" fill="#5B6577">JSONB</text>
+<text x="243" y="307.8" font-size="7.6" fill="#0A1F5C">version_reglas</text>
+<text x="392" y="307.8" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(80) · NULL</text>
+<rect x="221" y="312.2" width="176" height="14.4" fill="#F6F8FD"/>
+<rect x="225" y="315.2" width="13" height="8.4" rx="2" fill="#FFF1C7"/><text x="231.5" y="321.2" text-anchor="middle" font-size="5.6" font-weight="700" fill="#7A5900">UQ</text>
+<text x="243" y="322.2" font-size="7.6" font-weight="600" fill="#0A1F5C">foto_storage_key</text>
+<text x="392" y="322.2" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(500)</text>
+<text x="243" y="336.6" font-size="7.6" fill="#0A1F5C">archivado_at</text>
+<text x="392" y="336.6" text-anchor="end" font-size="6.2" fill="#5B6577">TIMESTAMPTZ · NULL</text>
+<g filter="url(#sh)"><rect x="440" y="168" width="178" height="118.4" rx="6" fill="#fff" stroke="#DCE3F1"/></g>
+<path d="M440,174 a6,6 0 0 1 6,-6 h166 a6,6 0 0 1 6,6 v20 h-178 z" fill="#5C63B5"/>
+<text x="449" y="180.5" font-size="10" font-weight="700" fill="#fff">analisis_vision</text>
+<text x="449" y="189.5" font-size="5.6" fill="#E6EDFF" letter-spacing=".6">INFERENCIA Y TRAZABILIDAD</text>
+<rect x="441" y="197.0" width="176" height="14.4" fill="#F6F8FD"/>
+<rect x="445" y="200.0" width="13" height="8.4" rx="2" fill="#D4F1E8"/><text x="451.5" y="206.0" text-anchor="middle" font-size="5.6" font-weight="700" fill="#0A6B52">PK</text>
+<text x="463" y="207.0" font-size="7.6" font-weight="600" fill="#0A1F5C">id</text>
+<text x="612" y="207.0" text-anchor="end" font-size="6.2" fill="#5B6577">INTEGER</text>
+<rect x="445" y="214.4" width="13" height="8.4" rx="2" fill="#DCE6FB"/><text x="451.5" y="220.4" text-anchor="middle" font-size="5.6" font-weight="700" fill="#1F3F9C">FK</text>
+<text x="463" y="221.4" font-size="7.6" font-weight="600" fill="#0A1F5C">reporte_id</text>
+<text x="612" y="221.4" text-anchor="end" font-size="6.2" fill="#5B6577">INTEGER</text>
+<rect x="441" y="225.8" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="463" y="235.8" font-size="7.6" fill="#0A1F5C">proveedor · modelo</text>
+<text x="612" y="235.8" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR · NULL</text>
+<text x="463" y="250.2" font-size="7.6" fill="#0A1F5C">estado</text>
+<text x="612" y="250.2" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(20)</text>
+<rect x="441" y="254.6" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="463" y="264.6" font-size="7.6" fill="#0A1F5C">detecciones</text>
+<text x="612" y="264.6" text-anchor="end" font-size="6.2" fill="#5B6577">JSONB</text>
+<text x="463" y="279.0" font-size="7.6" fill="#0A1F5C">error_code</text>
+<text x="612" y="279.0" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(80) · NULL</text>
+<g filter="url(#sh)"><rect x="0" y="190" width="178" height="132.8" rx="6" fill="#fff" stroke="#DCE3F1"/></g>
+<path d="M0,196 a6,6 0 0 1 6,-6 h166 a6,6 0 0 1 6,6 v20 h-178 z" fill="#0A1F5C"/>
+<text x="9" y="202.5" font-size="10" font-weight="700" fill="#fff">auditoria_eventos</text>
+<text x="9" y="211.5" font-size="5.6" fill="#E6EDFF" letter-spacing=".6">REGISTRO INMUTABLE</text>
+<rect x="1" y="219.0" width="176" height="14.4" fill="#F6F8FD"/>
+<rect x="5" y="222.0" width="13" height="8.4" rx="2" fill="#D4F1E8"/><text x="11.5" y="228.0" text-anchor="middle" font-size="5.6" font-weight="700" fill="#0A6B52">PK</text>
+<text x="23" y="229.0" font-size="7.6" font-weight="600" fill="#0A1F5C">id</text>
+<text x="172" y="229.0" text-anchor="end" font-size="6.2" fill="#5B6577">BIGINT</text>
+<rect x="5" y="236.4" width="13" height="8.4" rx="2" fill="#DCE6FB"/><text x="11.5" y="242.4" text-anchor="middle" font-size="5.6" font-weight="700" fill="#1F3F9C">FK</text>
+<text x="23" y="243.4" font-size="7.6" font-weight="600" fill="#0A1F5C">actor_user_id</text>
+<text x="172" y="243.4" text-anchor="end" font-size="6.2" fill="#5B6577">INTEGER · NULL</text>
+<rect x="1" y="247.8" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="23" y="257.8" font-size="7.6" fill="#0A1F5C">tipo_actor</text>
+<text x="172" y="257.8" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(20)</text>
+<text x="23" y="272.2" font-size="7.6" fill="#0A1F5C">entidad · entidad_id</text>
+<text x="172" y="272.2" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR · BIGINT</text>
+<rect x="1" y="276.6" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="23" y="286.6" font-size="7.6" fill="#0A1F5C">accion</text>
+<text x="172" y="286.6" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(80)</text>
+<text x="23" y="301.0" font-size="7.6" fill="#0A1F5C">cambios</text>
+<text x="172" y="301.0" text-anchor="end" font-size="6.2" fill="#5B6577">JSONB</text>
+<rect x="1" y="305.4" width="176" height="14.4" fill="#F6F8FD"/>
+<text x="23" y="315.4" font-size="7.6" fill="#0A1F5C">request_id</text>
+<text x="172" y="315.4" text-anchor="end" font-size="6.2" fill="#5B6577">VARCHAR(100) · NULL</text>
+<path d="M178,50 L220,50" stroke="#0E9AA7" stroke-width="1.6" fill="none"/>
+<rect x="181.0" y="31" width="36" height="13" rx="6.5" fill="#E7F6F7" stroke="#BFE5E8"/><text x="199" y="40.6" text-anchor="middle" font-size="6.8" font-weight="700" fill="#0A7480">1:0..N</text>
+<path d="M185,45 L178,50 L185,55" stroke="#0E9AA7" stroke-width="1.5" fill="none"/>
+<path d="M309,132.8 L309,168" stroke="#0E9AA7" stroke-width="1.6" fill="none"/>
+<rect x="321.0" y="143.4" width="44" height="13" rx="6.5" fill="#E7F6F7" stroke="#BFE5E8"/><text x="343" y="153.0" text-anchor="middle" font-size="6.8" font-weight="700" fill="#0A7480">1 : 0..N</text>
+<path d="M304,161 L309,168 L314,161" stroke="#0E9AA7" stroke-width="1.5" fill="none"/>
+<path d="M398,215 L440,215" stroke="#0E9AA7" stroke-width="1.6" fill="none"/>
+<rect x="401.0" y="196" width="36" height="13" rx="6.5" fill="#E7F6F7" stroke="#BFE5E8"/><text x="419" y="205.6" text-anchor="middle" font-size="6.8" font-weight="700" fill="#0A7480">1:0..N</text>
+<path d="M433,210 L440,215 L433,220" stroke="#0E9AA7" stroke-width="1.5" fill="none"/>
+<path d="M89,132.8 L89,190" stroke="#0E9AA7" stroke-width="1.6" fill="none"/>
+<rect x="102.0" y="154.4" width="50" height="13" rx="6.5" fill="#E7F6F7" stroke="#BFE5E8"/><text x="127" y="164.0" text-anchor="middle" font-size="6.8" font-weight="700" fill="#0A7480">0..1 : 0..N</text>
+<path d="M84,183 L89,190 L94,183" stroke="#0E9AA7" stroke-width="1.5" fill="none"/>
+<text x="0" y="388" font-size="6.2" fill="#5B6577">Fuente canónica: db/schema.sql · PK clave primaria · FK clave foránea · UQ única · NULL = opcional · entidad + entidad_id en auditoría es referencia lógica (no FK). Las fotos no son tablas SQL.</text><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTo3MDAyNzk1NS0zMDZhLTQ2YWItOGVjNi1iY2U4M2ZmYWJiNzIAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaB2WY5B0/49CRwmcnQbciwgAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDo4NjUwNDI3ZC0zNGExLTRlYzMtOWY2Ni0yMGI2YmRlNWZlN2VscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNo5a4Gw/VtxqILximC3Yd9TwAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggsSE8T4/D9bnjlY/UFmkl8Cb3pNxSaXn5xc4cR0NT5YWkZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaE8b1+bDAvO+5iXNx4IsAw8AAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIHpJPacO9Ep1J5Y2anktBg4Fq71+kEQPUONxNbg6Kn+gZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GTaXZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjcwMDI3OTU1LTMwNmEtNDZhYi04ZWM2LWJjZTgzZmZhYmI3Mi9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjVhN2ZjMzY5LTZhNDktNDU1Ni05ODg2LWYxYjNiYzFmYjVkNnJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCCxITxPj8P1ueOVj9QWaSXwJvek3FJpefnFzhxHQ1PlhaJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggdTSxja4K0+8OwNhhQ+4jSeIyZJZ6wkFY20Z+tYGnuqiiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFgg6JDPyNDbs9Rw4dQDDcR0B9cfU41yhgEU8F9oft5/7RB0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQNO16T1UjtyUI+a17Xg2V69SkBZfwBMHHCfSymvnlmCe5/tH2aNcojpcT9zVPRUwbppuU901pq2UBRInQDcFmkg=</c2pa:manifest></metadata></svg>
