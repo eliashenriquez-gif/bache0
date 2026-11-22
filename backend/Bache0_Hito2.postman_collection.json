@@ -2885,19 +2885,19 @@
     },
     {
       "key": "superadmin_password",
-      "value": "PON_AQUI_LA_CONTRASENA_DEL_SEED"
+      "value": ""
     },
     {
       "key": "admin_password",
-      "value": "ClaveInicial-Admin7-2026"
+      "value": ""
     },
     {
       "key": "admin_new_password",
-      "value": "ClaveNueva-Admin7-2026"
+      "value": ""
     },
     {
       "key": "inspector_password",
-      "value": "ClaveInspector-7-2026"
+      "value": ""
     },
     {
       "key": "run_id",

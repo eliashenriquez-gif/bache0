@@ -438,11 +438,11 @@
     },
     {
       "key": "superadmin_password",
-      "value": "PON_AQUI_LA_CONTRASENA_DEL_SEED"
+      "value": ""
     },
     {
       "key": "admin_password",
-      "value": "ClaveInicial-Admin7-2026"
+      "value": ""
     },
     {
       "key": "run_id",
