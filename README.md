@@ -14,6 +14,7 @@ Bache 0 permite que una persona reporte un desperfecto vial con **foto y ubicaci
 - **Interfaz web publicada:** [panel municipal](https://bache0.vercel.app/) y [formulario ciudadano](https://bache0.vercel.app/reporte). La interfaz publicada **no garantiza** que la API y PostgreSQL estén disponibles: para funcionar fuera del equipo de desarrollo se requiere una API HTTPS accesible y configurar `VITE_API_URL` en el despliegue.
 - **Hito 1:** [documento de propuesta](docs/Informe_HITO1_Documento_de_propuesta.pdf).
 - **Hito 2:** [documento técnico](docs/Bache0_Hito2_Documento_Tecnico.pdf), [modelo relacional](db/modelo_relacional.svg), [especificación OpenAPI](docs/openapi.yaml) y [contrato REST](docs/contrato-api-rest-v1.md).
+- **Hito 3:** [informe final](docs/Bache0_Hito3_Informe_Final.pdf), [manual de instalación y uso](docs/Bache0_Hito3_Manual_Instalacion_y_Uso.pdf), [bitácora consolidada MD](docs/Bache0_Hito3_Bitacora_Consolidada.md) y [bitácora PDF](docs/Bache0_Hito3_Bitacora_Consolidada.pdf).
 - **Postman Hito 2, demostración CRUD:** [`backend/postman/Bache0_Hito2_Demo_CRUD.postman_collection.json`](backend/postman/Bache0_Hito2_Demo_CRUD.postman_collection.json).
 - **Postman Hito 3, pruebas consolidadas:** [`backend/postman/Bache0_Hito3_Final.postman_collection.json`](backend/postman/Bache0_Hito3_Final.postman_collection.json), [entorno de ejemplo sin secretos](backend/postman/Bache0_Local.example.postman_environment.json) e [instrucciones específicas](docs/Postman_Hito3_Instrucciones.md).
 
@@ -199,11 +200,24 @@ GitHub incluye código, esquema, migraciones, semillas ficticias, pruebas y docu
 
 El sistema trata fotografías potencialmente identificables, ubicación del incidente y nombre/correo de funcionarios. Las pruebas del repositorio deben usar **datos ficticios**. Para las decisiones técnicas y limitaciones de visión artificial consulta `docs/vision-ia-hito3.md`.
 
-## Próxima entrega (Hito 3)
+## Entregables finales del Hito 3
 
-La pauta pide la integración funcional, bitácora, documentación final, manual de instalación/uso y **video de hasta dos minutos** accesible desde el README. Esos enlaces deben añadirse cuando sus archivos definitivos y el video estén realmente publicados; no se declaran entregados anticipadamente.
+La documentación final está publicada en `docs/`:
 
+- [Informe técnico final (PDF)](docs/Bache0_Hito3_Informe_Final.pdf).
+- [Manual de instalación y uso (PDF)](docs/Bache0_Hito3_Manual_Instalacion_y_Uso.pdf).
+- [Bitácora consolidada del equipo (Markdown)](docs/Bache0_Hito3_Bitacora_Consolidada.md).
+- [Bitácora consolidada para lectura (PDF)](docs/Bache0_Hito3_Bitacora_Consolidada.pdf).
+- [Bitácoras históricas individuales y técnicas](docs/bitacoras_historicas/).
+- [Diagrama de arquitectura](docs/modelo_arquitectonico_hito2.svg) y [modelo relacional](docs/modelo_relacional.svg).
 
+**Video demostrativo:** [Ver Bache 0 en Google Drive](https://drive.google.com/file/d/1f09H-NDgTz-rDfIQ6l2Nh5EzS-bOT9nF/view?usp=drive_link).
+
+También se conserva una [copia MP4 en el repositorio](docs/video/bache0-demo-hito3.mp4).
+
+**Importante:** el frontend está publicado en Vercel, pero la API de demostración depende de que el backend y su conexión HTTPS estén activos. La disponibilidad debe comprobarse antes de la evaluación.
+
+---
 ## Comprobación guiada de una instalación nueva (evaluación local)
 
 Esta sección complementa la instalación anterior. Los valores `.env.example` son **plantillas**: las contraseñas y `JWT_SECRET` de ejemplo **no sirven para iniciar sesión ni conectarse a PostgreSQL**. No se deben subir `.env` ni exportaciones de Postman que contengan credenciales.
